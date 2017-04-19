@@ -81,6 +81,9 @@ setup(
         datadotworld=ckanext.datadotworld.plugin:DatadotworldPlugin
 	[babel.extractors]
 	ckan = ckan.lib.extract:extract_ckan
+        [paste.paster_command]
+        datadotworld=ckanext.datadotworld.command:DataDotWorldCommand
+
     ''',
 
     # If you are changing from the default layout of your extension, you may

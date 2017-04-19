@@ -2,10 +2,8 @@
 ckanext-datadotworld
 =============
 
-.. Put a description of your extension here:
-   What does it do? What features does it have?
-   Consider including some screenshots or embedding a video!
-
+With this extension enabled, organization manage section has additional tab
+`data.world`, where you can specify syncronization options.
 
 ------------
 Requirements
@@ -37,9 +35,9 @@ To install ckanext-datadotworld:
    config file (by default the config file is located at
    ``/etc/ckan/default/production.ini``).
 
-4. Restart CKAN. For example if you've deployed CKAN with Apache on Ubuntu::
+4. Create DB tables::
 
-     sudo service apache2 reload
+     paster datadotworld init -c /config.ini
 
 
 ---------------
@@ -64,7 +62,7 @@ do::
     cd ckanext-datadotworld
     python setup.py develop
     pip install -r dev-requirements.txt
-
+    paster datadotworld init -c /config.ini
 
 -----------------
 Running the Tests
