@@ -8,7 +8,7 @@ import ckan.model as model
 
 log = logging.getLogger(__name__)
 licenses = {
-    'cc-by': 'CC-BY'
+    'cc-by': 'CC-BY',
     'other-pd': 'Public Domain',
     'odc-pddl': 'PDDL',
     'cc-zero': 'CC-0',
@@ -35,6 +35,7 @@ def notify(entity, operation):
 class API:
     api_root = 'https://api.data.world/v0'
     api_create = api_root + '/datasets/{owner}'
+    api_update = api_create + '/{name}'
     auth = 'Bearer {key}'
 
     def __init__(self, owner, key):
@@ -65,12 +66,20 @@ class API:
         res = requests.post(url, data=json.dumps(data), headers=headers)
         if res.status_code < 300:
             model.Session.add(extras)
+        else:
+            log.error(res.content)
         return data
 
     def _update(self, entity):
         data = self._format_data(entity)
+        extras = entity.datadotworld_extras
 
-        log.info('Update package')
+        headers = self._default_headers()
+        url = self.api_update.format(owner=self.owner, name=extras.id)
+        res = requests.patch(url, data=json.dumps(data), headers=headers)
+        import pdb; pdb.set_trace()
+        if res.status_code >= 400:
+            log.error(res.content)
         return data
 
     def _format_data(self, entity):
