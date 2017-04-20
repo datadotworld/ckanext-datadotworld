@@ -5,7 +5,7 @@ metadata = Base.metadata
 
 import ckanext.datadotworld.model.credentials
 import ckanext.datadotworld.model.extras
-import ckanext.datadotworld.model.resource
+# import ckanext.datadotworld.model.resource
 
 
 def drop_tables():

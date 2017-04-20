@@ -35,7 +35,6 @@ def notify(pkg_dict, operation):
         return
     api = API(credentials.owner, credentials.key)
     api.sync(entity)
-    api.sync_resources(entity.resources, entity)
 
 
 class API:
@@ -60,54 +59,17 @@ class API:
         else:
             self._create(entity)
 
-    def sync_resources(self, resources, pkg):
+    def _prepare_resources(self, resources):
         files = []
-        remove_queue = []
-        remote_resources = []
-
         for res_obj in resources:
             res = get_action('resource_show')(None, {'id': res_obj.id})
-            sync_res = res_obj.datadotworld_resource
-            if sync_res is None:
-                sync_res = Resource(resource=res_obj)
-                remote_resources.append(sync_res)
-                pass
-            elif sync_res.url != res['url']:
-                remove_queue.append(os.path.basename(sync_res.url))
-            else:
-                continue
+
             file = os.path.basename(res['url'])
             files.append(dict(
                 name=file,
                 source=dict(url=res['url'])
             ))
-            sync_res.url = res['url']
-            sync_res.id = file
-
-        if not files:
-            return
-        extras = pkg.datadotworld_extras
-        data = json.dumps(dict(files=files))
-        headers = self._default_headers()
-
-        for f in remove_queue:
-            requests.delete(
-                self.api_res_delete.format(
-                    owner=self.owner,
-                    name=extras.id,
-                    file=f
-                ),
-                headers=headers
-            )
-        res = requests.post(
-            self.api_res_create.format(
-                owner=self.owner,
-                name=extras.id
-            ),
-            data=data,
-            headers=headers
-        )
-        model.Session.add_all(remote_resources)
+        return files
 
     def _default_headers(self):
         return {
@@ -135,7 +97,7 @@ class API:
 
         headers = self._default_headers()
         url = self.api_update.format(owner=self.owner, name=extras.id)
-        res = requests.patch(url, data=json.dumps(data), headers=headers)
+        res = requests.put(url, data=json.dumps(data), headers=headers)
 
         if res.status_code >= 400:
             log.error(res.content)
@@ -154,4 +116,7 @@ class API:
             license=licenses.get(entity.license_id, 'Other'),
             visibility='PRIVATE' if entity.private else 'OPEN'
         )
+        files = self._prepare_resources(entity.resources)
+        if files:
+            data['files'] = files
         return data
