@@ -1,3 +1,4 @@
+from ckan.model.domain_object import DomainObjectOperation
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
 from ckanext.datadotworld.model.credentials import Credentials
@@ -11,7 +12,7 @@ log = logging.getLogger(__name__)
 class DatadotworldPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IConfigurer)
     plugins.implements(plugins.IRoutes, inherit=True)
-    plugins.implements(plugins.IDomainObjectModification, inherit=True)
+    plugins.implements(plugins.IPackageController, inherit=True)
 
     # IConfigurer
 
@@ -36,7 +37,16 @@ class DatadotworldPlugin(plugins.SingletonPlugin):
             action='edit', ckan_icon='globe')
         return map
 
-    # IDomainObjectModification
+    # IPackageController
 
-    def notify(self, entity, operation):
-        api.notify(entity, operation)
+    def after_create(self, context, pkg_dict):
+        api.notify(pkg_dict, DomainObjectOperation.new)
+        return pkg_dict
+
+    def after_update(self, context, pkg_dict):
+        api.notify(pkg_dict, DomainObjectOperation.changed)
+        return pkg_dict
+
+    def after_delete(self, context, pkg_dict):
+        api.notify(pkg_dict, DomainObjectOperation.deleted)
+        return pkg_dict
