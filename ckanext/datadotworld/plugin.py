@@ -3,6 +3,7 @@ import ckan.plugins.toolkit as toolkit
 from ckanext.datadotworld.model.credentials import Credentials
 import ckan.model as model
 import logging
+import ckanext.datadotworld.api as api
 
 log = logging.getLogger(__name__)
 
@@ -10,6 +11,7 @@ log = logging.getLogger(__name__)
 class DatadotworldPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IConfigurer)
     plugins.implements(plugins.IRoutes, inherit=True)
+    plugins.implements(plugins.IDomainObjectModification, inherit=True)
 
     # IConfigurer
 
@@ -33,3 +35,8 @@ class DatadotworldPlugin(plugins.SingletonPlugin):
             controller='ckanext.datadotworld.controller:DataDotWorldController',
             action='edit', ckan_icon='globe')
         return map
+
+    # IDomainObjectModification
+
+    def notify(self, entity, operation):
+        api.notify(entity, operation)

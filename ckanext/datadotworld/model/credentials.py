@@ -19,7 +19,8 @@ class Credentials(Base):
     owner = Column(UnicodeText)
 
     organization = relationship(
-        Group, backref=backref('datadotworld_credentials', uselist=False))
+        Group, backref=backref(
+            'datadotworld_credentials', uselist=False, cascade='all'))
 
     def update(self, data):
         for key, value in data.items():
