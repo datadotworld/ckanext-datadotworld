@@ -12,12 +12,19 @@ class DataDotWorldController(base.BaseController):
     def edit(self, id):
         def validate(data):
             error_dict = {}
+            has_owner = data.get('owner')
+            has_key = data.get('key')
 
             if tk.asbool(data.get('integration', 'False')):
-                if not data.get('owner'):
+                if not has_owner:
                     error_dict['owner'] = ['Required']
-                if not data.get('key'):
+                if not has_key:
                     error_dict['key'] = ['Required']
+            if tk.asbool(data.get('show_links', 'False')):
+                if not has_owner or not has_key:
+                    error_dict['show_links'] = [
+                        'This option available only '
+                        'if credentials are provided']
             if error_dict:
                 raise logic.ValidationError(error_dict)
 
@@ -61,6 +68,7 @@ class DataDotWorldController(base.BaseController):
                 extra['error_summary'] = e.error_summary
             else:
                 model.Session.commit()
+                h.flash_success('Saved')
                 return base.redirect_to('organization_dataworld', id=id)
 
         return base.render('organization/edit_credentials.html', extra_vars=extra)

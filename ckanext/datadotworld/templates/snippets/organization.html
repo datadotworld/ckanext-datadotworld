@@ -1,0 +1,13 @@
+{% ckan_extends %}
+
+{% block description %}
+  {{ super() }}
+  {# yeah, i know. just don't want to create stylesheet for one line #}
+  {# TODO: remove inline styles #}
+  {% set creds = h.datadotworld_creds(organization.id) %}
+  {% if creds and creds.show_links %}
+    <a href="{{h.datadotworld_link(creds.owner)}}">
+      <span class="dataset-private label label-inversed label-data-world"> data.world </span>
+    </a>
+  {% endif %}
+{% endblock %}

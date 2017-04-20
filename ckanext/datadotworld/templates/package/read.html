@@ -1,0 +1,22 @@
+{% ckan_extends %}
+
+{% block package_notes %}
+  {{ super() }}
+  {% set creds = h.datadotworld_creds(pkg.owner_org) %}
+
+  {% if creds and creds.show_links and c.pkg.datadotworld_extras %}
+    <div class="data-world-insights">
+      <div class="data-world-insights-holder">
+        <h2 class="data-world-insights-heading">Data.world insights</h2>
+        <p>Explore, collaborate or share the data through data.world</p>
+      </div>
+      <div class="data-world-button-holder">
+      <a class="btn btn-primary btn-data-world" href="{{ h.datadotworld_link(creds.owner, c.pkg.datadotworld_extras.id) }}">
+        <i class="icon-external-link"></i>
+        View dataset in Data.world
+      </a>
+      </div>
+      </div>
+
+{% endif %}
+{% endblock %}

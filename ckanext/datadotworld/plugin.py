@@ -13,6 +13,15 @@ class DatadotworldPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IConfigurer)
     plugins.implements(plugins.IRoutes, inherit=True)
     plugins.implements(plugins.IPackageController, inherit=True)
+    plugins.implements(plugins.ITemplateHelpers)
+
+    # ITemplateHelpers
+
+    def get_helpers(self):
+        return {
+            'datadotworld_link': api.API.generate_link,
+            'datadotworld_creds': api.API.creds_from_id
+        }
 
     # IConfigurer
 

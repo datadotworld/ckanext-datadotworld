@@ -15,6 +15,7 @@ class Credentials(Base):
     organization_id = Column(
         UnicodeText, ForeignKey(Group.id), primary_key=True)
     integration = Column(Boolean)
+    show_links = Column(Boolean)
     key = Column(UnicodeText)
     owner = Column(UnicodeText)
 

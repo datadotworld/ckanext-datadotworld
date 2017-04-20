@@ -1,0 +1,30 @@
+.label-data-world {
+    background: #336b9f;
+    text-transform: none;
+}
+
+.data-world-insights {
+    background-color: #dde9f5;
+    border: 1px solid #a3c5e7;
+    border-radius: 3px;
+    padding: 10px 18px 4px;
+
+}
+.data-world-insights-holder {
+    display: inline-block;
+}
+.data-world-insights-heading {
+    line-height: 14px;
+}
+.data-world-button-holder {
+    float: right;
+    padding-top: 14px;
+}
+.btn-data-world {
+    border: 1px solid #1d616e;
+    background: #4a7eb0;
+}
+
+.btn-data-world:hover{
+    background: #416f9a;
+}

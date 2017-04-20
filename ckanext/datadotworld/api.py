@@ -38,6 +38,7 @@ def notify(pkg_dict, operation):
 
 
 class API:
+    root = 'https://data.world'
     api_root = 'https://api.data.world/v0'
     api_create = api_root + '/datasets/{owner}'
     api_update = api_create + '/{name}'
@@ -58,6 +59,20 @@ class API:
             self._update(entity)
         else:
             self._create(entity)
+
+    @classmethod
+    def generate_link(cls, owner, package=None):
+        url = cls.root + '/' + owner
+        if package:
+            url += '/' + package
+        return url
+
+    @classmethod
+    def creds_from_id(cls, org_id):
+        org = model.Group.get(org_id)
+        if not org:
+            return
+        return org.datadotworld_credentials
 
     def _prepare_resources(self, resources):
         files = []
