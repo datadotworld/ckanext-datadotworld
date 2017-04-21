@@ -14,6 +14,8 @@ class DatadotworldPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IRoutes, inherit=True)
     plugins.implements(plugins.IPackageController, inherit=True)
     plugins.implements(plugins.ITemplateHelpers)
+    plugins.implements(plugins.IResourceUrlChange)
+    plugins.implements(plugins.IResourceController, inherit=True)
 
     # ITemplateHelpers
 
@@ -47,15 +49,28 @@ class DatadotworldPlugin(plugins.SingletonPlugin):
         return map
 
     # IPackageController
+    # IResourceController
 
-    def after_create(self, context, pkg_dict):
-        api.notify(pkg_dict, DomainObjectOperation.new)
-        return pkg_dict
+    def after_create(self, context, data_dict):
+        if 'package_id' not in data_dict:
+            api.notify(data_dict, DomainObjectOperation.new)
+        else:
+            api.create_resource(data_dict)
+        return data_dict
 
-    def after_update(self, context, pkg_dict):
-        api.notify(pkg_dict, DomainObjectOperation.changed)
-        return pkg_dict
+    def after_update(self, context, data_dict):
+        if 'package_id' not in data_dict:
+            api.notify(data_dict, DomainObjectOperation.changed)
+        return data_dict
 
-    def after_delete(self, context, pkg_dict):
-        api.notify(pkg_dict, DomainObjectOperation.deleted)
-        return pkg_dict
+    # IResourceController
+
+    def before_delete(self, context, resource, resources):
+        api.delete_resource(resource)
+
+    # IResourceUrlChange
+    def notify(self, entity):
+        if entity.state == 'deleted':
+            api.delete_resource({'id': entity.id})
+        else:
+            api.update_resource(entity)

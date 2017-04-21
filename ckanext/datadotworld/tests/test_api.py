@@ -7,6 +7,7 @@ from ckan.tests.helpers import call_action
 from ckan.tests.factories import Dataset, Organization, User
 from ckanext.datadotworld.model.credentials import Credentials
 from ckanext.datadotworld.model.extras import Extras
+from ckanext.datadotworld.model.resource import Resource
 from ckan.tests.helpers import (
     call_action, reset_db
 )
@@ -15,6 +16,10 @@ from json import loads
 
 import mock
 from unittest import TestCase
+
+
+class OKResponse:
+    status_code = 200
 
 
 def setup_module():
@@ -87,7 +92,25 @@ class TestAPI(TestCase):
         extr = self._get_extras()[-1]
         self.assertEqual(extr.id, data['title'].lower().replace('  ', '-'))
 
-    @mock.patch('requests.put')
+    @mock.patch('requests.patch')
     @mock.patch('requests.post')
-    def test_update_data(self, post, put):
-        pkg = Dataset(user=self.user)
+    @mock.patch('requests.delete')
+    def test_add_resources(self, delete, post, patch):
+        pkg = Dataset(user=self.user, owner_org=self.org['id'])
+        self.assertEqual(1, post.call_count)
+        self.assertEqual(0, patch.call_count)
+        res = call_action('resource_create', {
+            'user': self.user['name']
+        }, package_id=pkg['id'], url='test/file.csv')
+
+        res = call_action('resource_update', {
+            'user': self.user['name']
+        }, id=res['id'], url='test/file2.csv')
+
+        res = call_action('resource_delete', {
+            'user': self.user['name']
+        }, id=res['id'])
+
+        self.assertEqual(3, post.call_count)
+        self.assertEqual(3, patch.call_count)
+        self.assertEqual(2, delete.call_count)

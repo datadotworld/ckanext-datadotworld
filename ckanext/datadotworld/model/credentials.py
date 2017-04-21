@@ -28,7 +28,7 @@ class Credentials(Base):
             if hasattr(self, key):
                 setattr(self, key, value)
 
-    def __str__(self):
+    def __repr__(self):
         return '<DataDotWorld Credentials: org={0}, ownerID={1}>'.format(
             self.organization, self.owner
         )

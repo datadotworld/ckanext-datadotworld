@@ -22,7 +22,7 @@ class Extras(Base):
         Package, backref=backref(
             'datadotworld_extras', uselist=False, cascade='all'))
 
-    def __str__(self):
+    def __repr__(self):
         return '<DataDotWorldExtras:pkg={0},ownerID={1},remoteID={2}>'.format(
             self.package, self.owner, self.id
         )

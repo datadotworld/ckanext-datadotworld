@@ -14,15 +14,13 @@ class Resource(Base):
 
     resource_id = Column(
         UnicodeText, ForeignKey(Resource.id), primary_key=True)
-
-    url = Column(UnicodeText)
     id = Column(UnicodeText)
 
     resource = relationship(
         Resource, backref=backref(
-            'datadotworld_resource', uselist=False, cascade='all'))
+            'datadotworld_resource', uselist=False, cascade='save-update, merge, delete, delete-orphan'))
 
-    def __str__(self):
-        return '<DataDotWorldResource:res={0},url={1},remoteID={2}>'.format(
-            self.resource, self.url, self.id
+    def __repr__(self):
+        return '<DataDotWorldResource: res={0}, remoteID={1}>'.format(
+            self.resource, self.id
         )

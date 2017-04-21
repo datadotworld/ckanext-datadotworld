@@ -1,4 +1,5 @@
 import json
+from collections import defaultdict
 import logging
 from webhelpers.text import truncate
 import requests
@@ -24,7 +25,7 @@ licenses = {
 }
 
 
-def notify(pkg_dict, operation):
+def _get_creds_if_must_sync(pkg_dict):
     owner_org = pkg_dict.get('owner_org')
     org = model.Group.get(owner_org)
     if org is None:
@@ -32,20 +33,76 @@ def notify(pkg_dict, operation):
     credentials = org.datadotworld_credentials
     if credentials is None or not credentials.integration:
         return
+    return credentials
 
+
+def _info_from_pkg_id(id):
+    pkg_dict = get_action('package_show')(None, {
+        'id': id
+    })
+    credentials = _get_creds_if_must_sync(pkg_dict)
+    api = None
+    if credentials:
+        api = API(credentials.owner, credentials.key)
+
+    return pkg_dict, api
+
+
+def create_resource(res_dict):
+    pkg_dict, api = _info_from_pkg_id(res_dict['package_id'])
+    if not api:
+        return
+    res = model.Resource.get(res_dict['id'])
+    api.create_resource(res, pkg_dict)
+    model.Session.commit()
+
+
+def update_resource(res):
+    pkg_dict, api = _info_from_pkg_id(res.package_id)
+    if not api:
+        return
+    api.delete_resource(res, pkg_dict)
+    api.create_resource(res, pkg_dict)
+
+
+def delete_resource(res_dict):
+    res = model.Resource.get(res_dict['id'])
+    pkg_dict, api = _info_from_pkg_id(res.package_id)
+    if not api:
+        return
+    api.delete_resource(res, pkg_dict)
+
+
+def notify(pkg_dict, operation):
+
+    credentials = _get_creds_if_must_sync(pkg_dict)
+    if not credentials:
+        return
     api = API(credentials.owner, credentials.key)
     api.sync(pkg_dict)
 
 
-def _prepare_resources(resources):
+def _prepare_resource_url(link):
+    """Convert list of resources to files_list for data.world.
+    """
+
+    file = os.path.basename(link)
+    return dict(
+        name=file,
+        source=dict(url=link)
+    )
+
+
+
+def _prepare_resource_files(links):
     """Convert list of resources to files_list for data.world.
     """
     files = []
-    for res in resources:
-        file = os.path.basename(res['url'])
+    for link in links:
+        file = 'f_' + os.path.basename(link)
         files.append(dict(
             name=file,
-            source=dict(url=res['url'])
+            source=dict(url=link)
         ))
     return files
 
@@ -88,6 +145,51 @@ class API:
             return
         return org.datadotworld_credentials
 
+    def create_resource(self, res, pkg_dict):
+        entity = model.Package.get(pkg_dict['id'])
+        extras = entity.datadotworld_extras
+        if not extras:
+            return
+        if res.url_type == 'upload':
+            log.error('Uploaded resources not supported yet')
+            return
+        res_dict = get_action('resource_show')(None, {'id': res.id})
+        source = _prepare_resource_url(res_dict['url'])
+        data = {
+            "files": [
+                source
+            ]
+        }
+        url = self.api_res_create.format(
+            name=extras.id,
+            owner=self.owner
+        )
+        headers = self._default_headers()
+        response = requests.post(
+            url, headers=headers, data=json.dumps(data))
+        remote_res = Resource(resource=res, id=source['name'])
+        log.info(json.dumps(headers))
+        log.info(json.dumps(data))
+        log.warn(url)
+        model.Session.add(remote_res)
+
+    def delete_resource(self, res, pkg_dict):
+        entity = model.Package.get(pkg_dict['id'])
+        extras = entity.datadotworld_extras
+        if not extras:
+            return
+        remote_res = res.datadotworld_resource
+        if not remote_res:
+            return
+        url = self.api_res_delete.format(
+            name=extras.id,
+            owner=self.owner,
+            file=remote_res.id
+        )
+        headers = self._default_headers()
+        response = requests.delete(url, headers=headers)
+        model.Session.delete(remote_res)
+
     def _default_headers(self):
         return {
             'Authorization': self.auth.format(key=self.key),
@@ -106,7 +208,7 @@ class API:
         if res.status_code < 300:
             model.Session.add(extras)
         else:
-            log.error(res.content)
+            log.error('Create package:' + res.content)
         return data
 
     def _update(self, pkg_dict, entity):
@@ -115,10 +217,21 @@ class API:
 
         headers = self._default_headers()
         url = self.api_update.format(owner=self.owner, name=extras.id)
-        res = requests.put(url, data=json.dumps(data), headers=headers)
+
+        remote_res = requests.get(url, headers=headers)
+        if remote_res.status_code != 200:
+            log.error('Unable to get remote: ' + remote_res.content)
+        else:
+            remote_data = remote_res.json()
+            for key, value in data.items():
+                if remote_data.get(key) != value:
+                    break
+            else:
+                return
+        res = requests.patch(url, data=json.dumps(data), headers=headers)
 
         if res.status_code >= 400:
-            log.error(res.content)
+            log.error('Update package:' + res.content)
         return data
 
     def _format_data(self, pkg_dict):
@@ -130,11 +243,9 @@ class API:
             title=pkg_dict['title'],
             description=truncate(notes, 120),
             summary=notes,
-            tags=tags,
+            tags=list(set(tags)),
             license=licenses.get(pkg_dict.get('license_id'), 'Other'),
             visibility='PRIVATE' if pkg_dict.get('private') else 'OPEN'
         )
-        files = _prepare_resources(pkg_dict.get('resources', []))
-        if files:
-            data['files'] = files
+
         return data
