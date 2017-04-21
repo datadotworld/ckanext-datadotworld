@@ -22,9 +22,10 @@
 }
 .btn-data-world {
     border: 1px solid #1d616e;
-    background: #4a7eb0;
+    background-color: #4a82b3;
+    background-image: linear-gradient(to bottom,#4a82b3,#336d9d)
 }
 
 .btn-data-world:hover{
-    background: #416f9a;
+    background: #336d9d;
 }
