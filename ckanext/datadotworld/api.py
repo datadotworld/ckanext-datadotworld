@@ -105,7 +105,8 @@ class API:
     def _create(self, pkg_dict, entity):
         data = self._format_data(pkg_dict)
         extras = Extras(package=entity, owner=self.owner)
-        extras.id = munge_name(' '.join(data['title'].split()))
+        extras.id = munge_name(
+            ' '.join(data['title'].split()).replace('_', '-'))
 
         headers = self._default_headers()
         url = self.api_create.format(owner=self.owner)
