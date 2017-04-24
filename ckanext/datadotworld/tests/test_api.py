@@ -92,7 +92,7 @@ class TestAPI(TestCase):
         extr = self._get_extras()[-1]
         self.assertEqual(extr.id, data['title'].lower().replace('  ', '-'))
 
-    @mock.patch('requests.patch')
+    @mock.patch('requests.put')
     @mock.patch('requests.post')
     @mock.patch('requests.delete')
     def test_add_resources(self, delete, post, patch):

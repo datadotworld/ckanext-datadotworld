@@ -9,6 +9,8 @@ from ckan.lib.munge import munge_name
 import ckan.model as model
 from ckan.logic import get_action
 import os.path
+from markdown import markdown
+from bleach import clean
 
 
 log = logging.getLogger(__name__)
@@ -36,45 +38,7 @@ def _get_creds_if_must_sync(pkg_dict):
     return credentials
 
 
-def _info_from_pkg_id(id):
-    pkg_dict = get_action('package_show')(None, {
-        'id': id
-    })
-    credentials = _get_creds_if_must_sync(pkg_dict)
-    api = None
-    if credentials:
-        api = API(credentials.owner, credentials.key)
-
-    return pkg_dict, api
-
-
-def create_resource(res_dict):
-    pkg_dict, api = _info_from_pkg_id(res_dict['package_id'])
-    if not api:
-        return
-    res = model.Resource.get(res_dict['id'])
-    api.create_resource(res, pkg_dict)
-    model.Session.commit()
-
-
-def update_resource(res):
-    pkg_dict, api = _info_from_pkg_id(res.package_id)
-    if not api:
-        return
-    api.delete_resource(res, pkg_dict)
-    api.create_resource(res, pkg_dict)
-
-
-def delete_resource(res_dict):
-    res = model.Resource.get(res_dict['id'])
-    pkg_dict, api = _info_from_pkg_id(res.package_id)
-    if not api:
-        return
-    api.delete_resource(res, pkg_dict)
-
-
 def notify(pkg_dict, operation):
-
     credentials = _get_creds_if_must_sync(pkg_dict)
     if not credentials:
         return
@@ -91,20 +55,6 @@ def _prepare_resource_url(link):
         name=file,
         source=dict(url=link)
     )
-
-
-
-def _prepare_resource_files(links):
-    """Convert list of resources to files_list for data.world.
-    """
-    files = []
-    for link in links:
-        file = 'f_' + os.path.basename(link)
-        files.append(dict(
-            name=file,
-            source=dict(url=link)
-        ))
-    return files
 
 
 class API:
@@ -126,6 +76,7 @@ class API:
 
     def sync(self, pkg_dict):
         entity = model.Package.get(pkg_dict['id'])
+        pkg_dict = get_action('package_show')(None, {'id': entity.id})
         if entity.datadotworld_extras:
             self._update(pkg_dict, entity)
         else:
@@ -144,51 +95,6 @@ class API:
         if not org:
             return
         return org.datadotworld_credentials
-
-    def create_resource(self, res, pkg_dict):
-        entity = model.Package.get(pkg_dict['id'])
-        extras = entity.datadotworld_extras
-        if not extras:
-            return
-        if res.url_type == 'upload':
-            log.error('Uploaded resources not supported yet')
-            return
-        res_dict = get_action('resource_show')(None, {'id': res.id})
-        source = _prepare_resource_url(res_dict['url'])
-        data = {
-            "files": [
-                source
-            ]
-        }
-        url = self.api_res_create.format(
-            name=extras.id,
-            owner=self.owner
-        )
-        headers = self._default_headers()
-        response = requests.post(
-            url, headers=headers, data=json.dumps(data))
-        remote_res = Resource(resource=res, id=source['name'])
-        log.info(json.dumps(headers))
-        log.info(json.dumps(data))
-        log.warn(url)
-        model.Session.add(remote_res)
-
-    def delete_resource(self, res, pkg_dict):
-        entity = model.Package.get(pkg_dict['id'])
-        extras = entity.datadotworld_extras
-        if not extras:
-            return
-        remote_res = res.datadotworld_resource
-        if not remote_res:
-            return
-        url = self.api_res_delete.format(
-            name=extras.id,
-            owner=self.owner,
-            file=remote_res.id
-        )
-        headers = self._default_headers()
-        response = requests.delete(url, headers=headers)
-        model.Session.delete(remote_res)
 
     def _default_headers(self):
         return {
@@ -217,7 +123,6 @@ class API:
 
         headers = self._default_headers()
         url = self.api_update.format(owner=self.owner, name=extras.id)
-
         remote_res = requests.get(url, headers=headers)
         if remote_res.status_code != 200:
             log.error('Unable to get remote: ' + remote_res.content)
@@ -228,24 +133,31 @@ class API:
                     break
             else:
                 return
-        res = requests.patch(url, data=json.dumps(data), headers=headers)
 
+        res = requests.put(url, data=json.dumps(data), headers=headers)
         if res.status_code >= 400:
             log.error('Update package:' + res.content)
         return data
 
     def _format_data(self, pkg_dict):
         tags = []
-        notes = pkg_dict.get('notes')
+        notes = pkg_dict.get('notes') or ''
+        description = truncate(
+            clean(markdown(notes), tags=[], strip=True),
+            120)
         for tag in pkg_dict.get('tags', []):
             tags.append(tag['name'])
         data = dict(
             title=pkg_dict['title'],
-            description=truncate(notes, 120),
+            description=description,
             summary=notes,
             tags=list(set(tags)),
             license=licenses.get(pkg_dict.get('license_id'), 'Other'),
-            visibility='PRIVATE' if pkg_dict.get('private') else 'OPEN'
+            visibility='PRIVATE' if pkg_dict.get('private') else 'OPEN',
+            files=[
+                _prepare_resource_url(res['url'])
+                for res in pkg_dict['resources']
+            ]
         )
 
         return data
