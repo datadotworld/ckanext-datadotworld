@@ -39,6 +39,10 @@ To install ckanext-datadotworld:
 
      paster datadotworld init -c /config.ini
 
+5. Start celery daemon either with suprevisor or using paster::
+
+     paster celeryd run -c /config.ini
+
 
 ---------------
 Config Settings

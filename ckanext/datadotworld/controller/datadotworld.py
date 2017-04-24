@@ -6,6 +6,19 @@ from ckanext.datadotworld.model.credentials import Credentials
 from ckan.common import _, request, c
 import ckan.lib.helpers as h
 from ckanext.datadotworld.api import API
+from pylons import config
+import os
+from ckan.lib.celery_app import celery
+
+
+def syncronize_org(id):
+    ckan_ini_filepath = os.path.abspath(config['__file__'])
+    org = model.Group.get(id)
+    for pkg in org.packages():
+        celery.send_task(
+            'datadotworld.syncronize',
+            args=[pkg.id, ckan_ini_filepath])
+
 
 class DataDotWorldController(base.BaseController):
 
@@ -74,6 +87,9 @@ class DataDotWorldController(base.BaseController):
             else:
                 model.Session.commit()
                 h.flash_success('Saved')
+
+                if tk.asbool(c.credentials.integration):
+                    syncronize_org(c.group.id)
                 return base.redirect_to('organization_dataworld', id=id)
 
         return base.render('organization/edit_credentials.html', extra_vars=extra)

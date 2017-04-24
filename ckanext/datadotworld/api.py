@@ -27,6 +27,11 @@ licenses = {
 }
 
 
+def dataworld_name(title):
+    return munge_name(
+        ' '.join(title.split()).replace('_', '-'))
+
+
 def _get_creds_if_must_sync(pkg_dict):
     owner_org = pkg_dict.get('owner_org')
     org = model.Group.get(owner_org)
@@ -38,7 +43,8 @@ def _get_creds_if_must_sync(pkg_dict):
     return credentials
 
 
-def notify(pkg_dict, operation):
+def notify(pkg_id):
+    pkg_dict = get_action('package_show')(None, {'id': pkg_id})
     credentials = _get_creds_if_must_sync(pkg_dict)
     if not credentials:
         return
@@ -117,17 +123,30 @@ class API:
     def _create(self, pkg_dict, entity):
         data = self._format_data(pkg_dict)
         extras = Extras(package=entity, owner=self.owner)
-        extras.id = munge_name(
-            ' '.join(data['title'].split()).replace('_', '-'))
-
+        extras.id = dataworld_name(data['title'])
         headers = self._default_headers()
         url = self.api_create.format(owner=self.owner)
         res = requests.post(url, data=json.dumps(data), headers=headers)
 
         if res.status_code < 300:
             model.Session.add(extras)
+        elif res.status_code == 400:
+            log.warn('[create] Check whether {id} exists'.format(id=extras.id))
+            url = self.api_update.format(owner=self.owner, name=extras.id)
+            remote_res = requests.get(url, headers=headers)
+            log.warn(url)
+            log.warn(headers)
+            log.warn(res)
+            if remote_res.status_code == 200:
+                model.Session.add(extras)
+                model.Session.commit()
+                self._update(pkg_dict, entity)
+            else:
+                log.error('[create {id}] Check error:'.format(
+                    id=extras.id) + remote_res.content)
+                log.error('[create {id}]'.format(id=extras.id) + res.content)
         else:
-            log.error('Create package:' + res.content)
+            log.error('[create {id}]'.format(id=extras.id) + res.content)
         return data
 
     def _update(self, pkg_dict, entity):

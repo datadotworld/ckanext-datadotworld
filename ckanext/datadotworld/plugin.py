@@ -1,10 +1,12 @@
-from ckan.model.domain_object import DomainObjectOperation
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
 from ckanext.datadotworld.model.credentials import Credentials
 import ckan.model as model
 import logging
 import ckanext.datadotworld.api as api
+from ckan.lib.celery_app import celery
+import os
+from pylons import config
 
 log = logging.getLogger(__name__)
 
@@ -49,9 +51,15 @@ class DatadotworldPlugin(plugins.SingletonPlugin):
     # IPackageController
 
     def after_create(self, context, data_dict):
-        api.notify(data_dict, DomainObjectOperation.new)
+        ckan_ini_filepath = os.path.abspath(config['__file__'])
+        celery.send_task(
+            'datadotworld.syncronize',
+            args=[data_dict['id'], ckan_ini_filepath])
         return data_dict
 
     def after_update(self, context, data_dict):
-        api.notify(data_dict, DomainObjectOperation.changed)
+        ckan_ini_filepath = os.path.abspath(config['__file__'])
+        celery.send_task(
+            'datadotworld.syncronize',
+            args=[data_dict['id'], ckan_ini_filepath])
         return data_dict
