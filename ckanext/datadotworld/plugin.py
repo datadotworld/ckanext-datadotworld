@@ -14,7 +14,6 @@ class DatadotworldPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IRoutes, inherit=True)
     plugins.implements(plugins.IPackageController, inherit=True)
     plugins.implements(plugins.ITemplateHelpers)
-    plugins.implements(plugins.IResourceUrlChange)
 
     # ITemplateHelpers
 

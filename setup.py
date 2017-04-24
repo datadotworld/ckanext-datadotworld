@@ -83,7 +83,8 @@ setup(
 	ckan = ckan.lib.extract:extract_ckan
         [paste.paster_command]
         datadotworld=ckanext.datadotworld.command:DataDotWorldCommand
-
+        [ckan.celery_task]
+        tasks = ckanext.datadotworld.celery_import:task_imports
     ''',
 
     # If you are changing from the default layout of your extension, you may

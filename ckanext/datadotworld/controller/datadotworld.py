@@ -5,7 +5,7 @@ import ckan.plugins.toolkit as tk
 from ckanext.datadotworld.model.credentials import Credentials
 from ckan.common import _, request, c
 import ckan.lib.helpers as h
-
+from ckanext.datadotworld.api import API
 
 class DataDotWorldController(base.BaseController):
 
@@ -25,6 +25,11 @@ class DataDotWorldController(base.BaseController):
                     error_dict['show_links'] = [
                         'This option available only '
                         'if credentials are provided']
+            if not error_dict:
+                api = API(has_owner, has_key)
+                check = api.check_credentials()
+                if not check:
+                    error_dict['key'] = ['Incorrect key']
             if error_dict:
                 raise logic.ValidationError(error_dict)
 

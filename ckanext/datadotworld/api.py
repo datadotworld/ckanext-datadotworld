@@ -96,6 +96,18 @@ class API:
             return
         return org.datadotworld_credentials
 
+    def check_credentials(self):
+        headers = self._default_headers()
+        url = self.api_update.format(
+            owner=self.owner,
+            name='definitely-fake-dataset-name'
+        )
+        resp = requests.get(url, headers=headers)
+        print(resp, resp.content, url)
+        if resp.status_code == 401:
+            return False
+        return True
+
     def _default_headers(self):
         return {
             'Authorization': self.auth.format(key=self.key),
