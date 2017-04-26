@@ -26,6 +26,9 @@ licenses = {
     # 'CC BY-NC-SA',
 }
 
+def get_context():
+    return {'ignore_auth': True}
+
 
 def dataworld_name(title):
     return munge_name(
@@ -44,7 +47,7 @@ def _get_creds_if_must_sync(pkg_dict):
 
 
 def notify(pkg_id):
-    pkg_dict = get_action('package_show')(None, {'id': pkg_id})
+    pkg_dict = get_action('package_show')(get_context(), {'id': pkg_id})
     credentials = _get_creds_if_must_sync(pkg_dict)
     if not credentials:
         return
@@ -52,13 +55,15 @@ def notify(pkg_id):
     api.sync(pkg_dict)
 
 
-def _prepare_resource_url(link):
+def _prepare_resource_url(res):
     """Convert list of resources to files_list for data.world.
     """
+    link = res['url']
+    name = res['name']
 
     file = os.path.basename(link)
     return dict(
-        name=file,
+        name=name or file,
         source=dict(url=link)
     )
 
@@ -82,7 +87,7 @@ class API:
 
     def sync(self, pkg_dict):
         entity = model.Package.get(pkg_dict['id'])
-        pkg_dict = get_action('package_show')(None, {'id': entity.id})
+        pkg_dict = get_action('package_show')(get_context(), {'id': entity.id})
         if entity.datadotworld_extras:
             self._update(pkg_dict, entity)
         else:
@@ -131,22 +136,19 @@ class API:
         if res.status_code < 300:
             model.Session.add(extras)
         elif res.status_code == 400:
-            log.warn('[create] Check whether {id} exists'.format(id=extras.id))
+            log.warn('[create] Try to replace {id}'.format(id=extras.id))
             url = self.api_update.format(owner=self.owner, name=extras.id)
-            remote_res = requests.get(url, headers=headers)
-            log.warn(url)
-            log.warn(headers)
-            log.warn(res)
+            remote_res = requests.put(url, data=json.dumps(data), headers=headers)
             if remote_res.status_code == 200:
                 model.Session.add(extras)
-                model.Session.commit()
-                self._update(pkg_dict, entity)
             else:
-                log.error('[create {id}] Check error:'.format(
+                log.error('[create {id}] Replace error:'.format(
                     id=extras.id) + remote_res.content)
                 log.error('[create {id}]'.format(id=extras.id) + res.content)
         else:
             log.error('[create {id}]'.format(id=extras.id) + res.content)
+        model.Session.commit()
+
         return data
 
     def _update(self, pkg_dict, entity):
@@ -157,7 +159,8 @@ class API:
         url = self.api_update.format(owner=self.owner, name=extras.id)
         remote_res = requests.get(url, headers=headers)
         if remote_res.status_code != 200:
-            log.error('Unable to get remote: ' + remote_res.content)
+            log.warn('[update {0}]Unable to get remote: {1}'.format(
+                extras.id, remote_res.content))
         else:
             remote_data = remote_res.json()
             for key, value in data.items():
@@ -187,7 +190,7 @@ class API:
             license=licenses.get(pkg_dict.get('license_id'), 'Other'),
             visibility='PRIVATE' if pkg_dict.get('private') else 'OPEN',
             files=[
-                _prepare_resource_url(res['url'])
+                _prepare_resource_url(res)
                 for res in pkg_dict['resources']
             ]
         )

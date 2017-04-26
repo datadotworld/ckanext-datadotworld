@@ -13,8 +13,10 @@ from ckan.lib.celery_app import celery
 
 def syncronize_org(id):
     ckan_ini_filepath = os.path.abspath(config['__file__'])
-    org = model.Group.get(id)
-    for pkg in org.packages():
+    packages = model.Session.query(model.Package).filter_by(
+        owner_org=id
+    )
+    for pkg in packages:
         celery.send_task(
             'datadotworld.syncronize',
             args=[pkg.id, ckan_ini_filepath])
@@ -87,7 +89,6 @@ class DataDotWorldController(base.BaseController):
             else:
                 model.Session.commit()
                 h.flash_success('Saved')
-
                 if tk.asbool(c.credentials.integration):
                     syncronize_org(c.group.id)
                 return base.redirect_to('organization_dataworld', id=id)
