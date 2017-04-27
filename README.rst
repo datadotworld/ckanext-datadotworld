@@ -38,6 +38,7 @@ To install ckanext-datadotworld:
 4. Create DB tables::
 
      paster datadotworld init -c /config.ini
+     paster datadotworld upgrade -c /config.ini
 
 5. Start celery daemon either with suprevisor or using paster::
 

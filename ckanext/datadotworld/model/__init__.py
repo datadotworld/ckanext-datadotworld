@@ -1,16 +1,11 @@
+# -*- coding: utf-8 -*-
+
 from sqlalchemy.ext.declarative import declarative_base
-import ckan.model as model
 Base = declarative_base()
 metadata = Base.metadata
 
-import ckanext.datadotworld.model.credentials
-import ckanext.datadotworld.model.extras
-# import ckanext.datadotworld.model.resource
 
-
-def drop_tables():
-    metadata.drop_all(model.meta.engine)
-
-
-def create_tables():
-    metadata.create_all(model.meta.engine)
+class States:
+    uptodate = u'up-to-date'
+    failed = u'failed'
+    pending = u'pending'

@@ -6,7 +6,7 @@ from sqlalchemy import (
     Column
 
 )
-from ckanext.datadotworld.model import Base
+from ckanext.datadotworld.model import Base, States
 
 
 class Extras(Base):
@@ -17,6 +17,8 @@ class Extras(Base):
 
     owner = Column(UnicodeText)
     id = Column(UnicodeText)
+    state = Column(UnicodeText, default=States.uptodate)
+    message = Column(UnicodeText)
 
     package = relationship(
         Package, backref=backref(

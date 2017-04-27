@@ -28,12 +28,6 @@ class DatadotworldPlugin(plugins.SingletonPlugin):
     # IConfigurer
 
     def update_config(self, config_):
-        has_table = model.meta.engine.has_table(
-            Credentials.__tablename__
-        )
-        if not has_table:
-            log.fatal('Run `paster datadotworld create` first')
-
         toolkit.add_template_directory(config_, 'templates')
         toolkit.add_public_directory(config_, 'public')
         toolkit.add_resource('fanstatic', 'datadotworld')

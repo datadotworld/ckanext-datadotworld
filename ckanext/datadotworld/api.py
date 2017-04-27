@@ -4,7 +4,7 @@ import logging
 from webhelpers.text import truncate
 import requests
 from ckanext.datadotworld.model.extras import Extras
-from ckanext.datadotworld.model.resource import Resource
+from ckanext.datadotworld.model import States
 from ckan.lib.munge import munge_name
 import ckan.model as model
 from ckan.logic import get_action
@@ -25,6 +25,7 @@ licenses = {
     'cc-nc': 'CC BY-NC',
     # 'CC BY-NC-SA',
 }
+
 
 def get_context():
     return {'ignore_auth': True}
@@ -88,10 +89,15 @@ class API:
     def sync(self, pkg_dict):
         entity = model.Package.get(pkg_dict['id'])
         pkg_dict = get_action('package_show')(get_context(), {'id': entity.id})
-        if entity.datadotworld_extras:
-            self._update(pkg_dict, entity)
-        else:
-            self._create(pkg_dict, entity)
+        extras = entity.datadotworld_extras
+        action = self._update if extras else self._create
+        if not extras:
+            extras = Extras(package=entity, owner=self.owner)
+        extras.state = States.pending
+        model.Session.add(extras)
+
+        action(pkg_dict, entity)
+        model.Session.commit()
 
     @classmethod
     def generate_link(cls, owner, package=None):
@@ -127,27 +133,30 @@ class API:
 
     def _create(self, pkg_dict, entity):
         data = self._format_data(pkg_dict)
-        extras = Extras(package=entity, owner=self.owner)
+        extras = entity.datadotworld_extras
         extras.id = dataworld_name(data['title'])
         headers = self._default_headers()
         url = self.api_create.format(owner=self.owner)
         res = requests.post(url, data=json.dumps(data), headers=headers)
+        extras.message = res.content
 
         if res.status_code < 300:
-            model.Session.add(extras)
+            extras.state = States.uptodate
         elif res.status_code == 400:
             log.warn('[create] Try to replace {id}'.format(id=extras.id))
             url = self.api_update.format(owner=self.owner, name=extras.id)
             remote_res = requests.put(url, data=json.dumps(data), headers=headers)
+            extras.message = remote_res.content
             if remote_res.status_code == 200:
-                model.Session.add(extras)
+                extras.state = States.uptodate
             else:
+                extras.state = States.failed
                 log.error('[create {id}] Replace error:'.format(
                     id=extras.id) + remote_res.content)
                 log.error('[create {id}]'.format(id=extras.id) + res.content)
         else:
+            extras.state = States.failed
             log.error('[create {id}]'.format(id=extras.id) + res.content)
-        model.Session.commit()
 
         return data
 
@@ -170,8 +179,11 @@ class API:
                 return
 
         res = requests.put(url, data=json.dumps(data), headers=headers)
+        extras.message = res.content
         if res.status_code >= 400:
+            extras.state = States.failed
             log.error('Update package:' + res.content)
+        extras.state = States.uptodate
         return data
 
     def _format_data(self, pkg_dict):

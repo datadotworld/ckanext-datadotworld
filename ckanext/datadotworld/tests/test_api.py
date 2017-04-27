@@ -7,7 +7,6 @@ from ckan.tests.helpers import call_action
 from ckan.tests.factories import Dataset, Organization, User
 from ckanext.datadotworld.model.credentials import Credentials
 from ckanext.datadotworld.model.extras import Extras
-from ckanext.datadotworld.model.resource import Resource
 from ckan.tests.helpers import (
     call_action, reset_db
 )
