@@ -1,0 +1,45 @@
+{% extends 'page.html' %}
+
+
+{% block subtitle %}Failed pushes - Data.world{% endblock %}
+
+{% block secondary_content %}
+    <section class="module module-narrow module-shallow">
+      <h2 class="module-heading"><i class="icon-info-sign"></i> {{ _('Info page') }}</h2>
+      <div class="module-content">
+        <p>
+          {% trans %}
+            This page contains information about failed attempts to push dataset from current CKAN instance to
+            <a href="http://">Data.world</a> portal.
+{% endtrans %}
+        </p>
+      </div>
+    </section>
+{% endblock secondary_content %}
+
+{% block primary_content_inner %}
+  <table class="table table-condensed table-striped">
+    <thead>
+      <tr>
+        <th>Dataset</th>
+        <th>Details</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for pkg in datasets  %}
+        <tr>
+          <td>
+            <a href="{{ h.url_for('dataset_read', id=pkg.name) }}">
+              {{ h.truncate(pkg.title, 30) }}
+            </a>
+          </td>
+          <td>
+            {% for key, msg in pkg.message.items() %}
+              <p><strong>{{ key }}:</strong> {{ msg }}</p>
+            {% endfor %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

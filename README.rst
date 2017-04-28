@@ -55,6 +55,9 @@ Document any optional config settings here. For example::
     # (optional, default: 24).
     ckanext.datadotworld.some_setting = some_default_value
 
+Attempts to push failed datasets can be sceduled by adding line to cron::
+
+    * 8 * * * paster --plugin=ckanext-datadotworld datadotworld push_failed -c /config.ini
 
 ------------------------
 Development Installation

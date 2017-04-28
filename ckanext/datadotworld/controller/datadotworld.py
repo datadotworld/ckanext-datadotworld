@@ -1,14 +1,18 @@
+import json
 import ckan.lib.base as base
 import ckan.model as model
 import ckan.logic as logic
 import ckan.plugins.toolkit as tk
 from ckanext.datadotworld.model.credentials import Credentials
+from ckanext.datadotworld.model.extras import Extras
 from ckan.common import _, request, c
 import ckan.lib.helpers as h
 from ckanext.datadotworld.api import API
 from pylons import config
 import os
 from ckan.lib.celery_app import celery
+from sqlalchemy import func
+import ckanext.datadotworld.helpers as dh
 
 
 def syncronize_org(id):
@@ -23,6 +27,36 @@ def syncronize_org(id):
 
 
 class DataDotWorldController(base.BaseController):
+    def list_failed(self):
+        orgs = dh.admin_in_orgs(c.user)
+        if not orgs:
+            base.abort(401, _('User %r not authorized to see this page') % (
+                c.user))
+        extra = {}
+        ids = [org.id for org in orgs]
+        query = model.Session.query(
+            model.Package.name,
+            model.Package.title,
+            Extras.message
+        ).join(
+            model.Group, model.Package.owner_org == model.Group.id
+        ).filter(
+            model.Group.id.in_(ids)
+        ).join(
+            Extras
+        ).filter(
+            Extras.state == 'failed'
+        )
+        extra['datasets'] = query.all()
+        for pkg in extra['datasets']:
+            try:
+                pkg.message = json.loads(pkg.message)
+            except Exception:
+                pkg.message = {
+                    'RAW message': pkg.message
+                }
+        return base.render('datadotworld/list_failed.html', extra_vars=extra)
+
 
     def edit(self, id):
         def validate(data):
@@ -57,11 +91,12 @@ class DataDotWorldController(base.BaseController):
         data_dict = {
             'id': id
         }
+        stats = {}
         extra = {
             'errors': {},
-            'error_summary': None
+            'error_summary': None,
+            'stats': stats
         }
-
         try:
             if not h.check_access('organization_update', data_dict):
                 raise logic.NotAuthorized
@@ -93,4 +128,14 @@ class DataDotWorldController(base.BaseController):
                     syncronize_org(c.group.id)
                 return base.redirect_to('organization_dataworld', id=id)
 
-        return base.render('organization/edit_credentials.html', extra_vars=extra)
+        query = model.Session.query(
+            func.count(model.Package.id).label('total'),
+            Extras.state
+        ).join(model.Group, model.Package.owner_org == model.Group.id).join(
+            Extras
+        ).group_by(Extras.state).filter(model.Package.owner_org == c.group.id)
+
+        for amount, state in query:
+            stats[state] = amount
+        return base.render(
+            'organization/edit_credentials.html', extra_vars=extra)

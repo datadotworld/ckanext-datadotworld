@@ -1,5 +1,8 @@
+from ckan.lib.celery_app import celery
 from ckan.lib.cli import CkanCommand
 from pylons import config
+import ckan.model as model
+from ckanext.datadotworld.model.extras import Extras
 import paste.script
 import logging
 from migrate.versioning.shell import main
@@ -21,6 +24,7 @@ class DataDotWorldCommand(CkanCommand):
         init - prepare migrations
         downgrade - delete tables provided by datadotworld
         upgrade - create/update required tables
+        push_failed - try to push prefiously failed datasets to data.world
     """
 
     summary = __doc__.split('\n')[0]
@@ -46,8 +50,20 @@ class DataDotWorldCommand(CkanCommand):
             self._upgrade()
         elif self.args[0] == 'downgrade':
             self._downgrade()
+        elif self.args[0] == 'push_failed':
+            self._push_failed()
         else:
             print(self.usage)
+
+    def _push_failed(self):
+        ckan_ini_filepath = path.abspath(config['__file__'])
+
+        failed = model.Session.query(Extras).filter_by(state='failed')
+        for record in failed:
+            celery.send_task(
+                'datadotworld.syncronize',
+                args=[record.package_id, ckan_ini_filepath])
+
 
     def _init(self):
         try:

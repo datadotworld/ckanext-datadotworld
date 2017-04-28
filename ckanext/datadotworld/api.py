@@ -33,7 +33,9 @@ def get_context():
 
 def dataworld_name(title):
     return munge_name(
-        ' '.join(title.split()).replace('_', '-'))
+        '-'.join(filter(
+            None, ' '.join(title.split()).replace('_', '-')
+        ).split('-')))
 
 
 def _get_creds_if_must_sync(pkg_dict):
@@ -95,6 +97,7 @@ class API:
             extras = Extras(package=entity, owner=self.owner)
         extras.state = States.pending
         model.Session.add(extras)
+        model.Session.commit()
 
         action(pkg_dict, entity)
         model.Session.commit()
@@ -183,7 +186,8 @@ class API:
         if res.status_code >= 400:
             extras.state = States.failed
             log.error('Update package:' + res.content)
-        extras.state = States.uptodate
+        else:
+            extras.state = States.uptodate
         return data
 
     def _format_data(self, pkg_dict):

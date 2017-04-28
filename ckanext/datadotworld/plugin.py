@@ -4,6 +4,7 @@ from ckanext.datadotworld.model.credentials import Credentials
 import ckan.model as model
 import logging
 import ckanext.datadotworld.api as api
+import ckanext.datadotworld.helpers as dh
 from ckan.lib.celery_app import celery
 import os
 from pylons import config
@@ -22,7 +23,8 @@ class DatadotworldPlugin(plugins.SingletonPlugin):
     def get_helpers(self):
         return {
             'datadotworld_link': api.API.generate_link,
-            'datadotworld_creds': api.API.creds_from_id
+            'datadotworld_creds': api.API.creds_from_id,
+            'datadotworld_admin_in_orgs': dh.admin_in_orgs
         }
 
     # IConfigurer
@@ -40,6 +42,12 @@ class DatadotworldPlugin(plugins.SingletonPlugin):
             '/organization/edit/{id}/data.world',
             controller='ckanext.datadotworld.controller:DataDotWorldController',
             action='edit', ckan_icon='globe')
+        map.connect(
+            'list_dataworld_failed',
+            '/data.world/failed',
+            controller='ckanext.datadotworld.controller:DataDotWorldController',
+            action='list_failed')
+
         return map
 
     # IPackageController
