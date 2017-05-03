@@ -12,15 +12,19 @@
           <span class="part-label">data.world</span>
         </span>
         <h2 class="data-world-insights-heading">
-          Data.world insights
+          {{ _('Data.world insights') }}
         </h2>
-        <p>Explore, collaborate or share the data through <em>data.world</em></p>
+        <p>
+          {% trans %}
+            Explore, collaborate or share the data through <em>data.world</em>
+          {% endtrans %}
+        </p>
       </div>
       <div class="data-world-button-holder">
         <a class="btn btn-primary btn-data-world" href="{{ h.datadotworld_link(creds.owner, c.pkg.datadotworld_extras.id) }}">
           <strong>
             <i class="icon-external-link"></i>
-            View dataset in Data.world
+            {{ _('View dataset in Data.world') }}
           </strong>
         </a>
       </div>

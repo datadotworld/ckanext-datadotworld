@@ -41,7 +41,7 @@ class DatadotworldPlugin(plugins.SingletonPlugin):
             'organization_dataworld',
             '/organization/edit/{id}/data.world',
             controller='ckanext.datadotworld.controller:DataDotWorldController',
-            action='edit', ckan_icon='globe')
+            action='edit')
         map.connect(
             'list_dataworld_failed',
             '/data.world/failed',
