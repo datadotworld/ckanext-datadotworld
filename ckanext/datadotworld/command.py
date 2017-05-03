@@ -1,4 +1,3 @@
-from ckan.lib.celery_app import celery
 from ckan.lib.cli import CkanCommand
 from pylons import config
 import ckan.model as model
@@ -56,9 +55,13 @@ class DataDotWorldCommand(CkanCommand):
             print(self.usage)
 
     def _push_failed(self):
+        # XXX: DO NOT IMPORT celery at the top of file - it will
+        # use incorrect config then and you'll receive error like
+        # "no section app:main in config file"
+        from ckan.lib.celery_app import celery
         ckan_ini_filepath = path.abspath(config['__file__'])
-
         failed = model.Session.query(Extras).filter_by(state='failed')
+
         for record in failed:
             celery.send_task(
                 'datadotworld.syncronize',
