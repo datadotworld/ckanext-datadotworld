@@ -7,7 +7,11 @@
   {% set creds = h.datadotworld_creds(organization.id) %}
   {% if creds and creds.show_links %}
     <a href="{{h.datadotworld_link(creds.owner)}}">
-      <span class="dataset-private label label-inversed label-data-world"> data.world </span>
+
+        <span class="label label-inversed label-data-world">
+            <span class="part-linked">data linked</span>
+            <span class="part-label">data.world</span>
+        </span>
     </a>
   {% endif %}
 {% endblock %}

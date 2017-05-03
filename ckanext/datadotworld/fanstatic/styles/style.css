@@ -1,6 +1,26 @@
 .label-data-world {
-    background: #336b9f;
+    text-shadow: none;
+    width: 144px;
     text-transform: none;
+    padding: 4px 5px 5px;
+    overflow: hidden;
+    border-radius: 5px;
+    background-color: #5492c0;
+}
+.data-world-insights .label-data-world {
+    margin: 4px 8px 0 0;
+}
+.part-linked {
+    font-size: 10px;
+    padding: 10px 4px 10px;
+    letter-spacing: -0.4px;
+    font-style: italic;
+}
+.part-label {
+    background: #313e48;
+    font-size: 15px;
+    font-family: initial;
+    padding: 10px 12px 10px 8px;
 }
 
 .data-world-insights {
@@ -15,6 +35,7 @@
 }
 .data-world-insights-heading {
     line-height: 14px;
+    letter-spacing: -.5px;
 }
 .data-world-button-holder {
     float: right;
