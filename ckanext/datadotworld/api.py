@@ -54,6 +54,8 @@ def notify(pkg_id):
     credentials = _get_creds_if_must_sync(pkg_dict)
     if not credentials:
         return
+    if pkg_dict.get('state') == 'draft':
+        return
     api = API(credentials.owner, credentials.key)
     api.sync(pkg_dict)
 
