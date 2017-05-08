@@ -72,9 +72,9 @@ def _prepare_resource_url(res):
     link = res['url']
     name = res['name']
 
-    file = os.path.basename(link)
+    file, ext = os.path.splitext(os.path.basename(link))
     return dict(
-        name=name or file,
+        name=(name or file) + ext,
         source=dict(url=link)
     )
 
