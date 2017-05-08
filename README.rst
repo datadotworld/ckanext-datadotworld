@@ -49,15 +49,13 @@ To install ckanext-datadotworld:
 Config Settings
 ---------------
 
-Document any optional config settings here. For example::
-
-    # The minimum number of hours to wait before re-checking a resource
-    # (optional, default: 24).
-    ckanext.datadotworld.some_setting = some_default_value
-
 Attempts to push failed datasets can be sceduled by adding line to cron::
 
     * 8 * * * paster --plugin=ckanext-datadotworld datadotworld push_failed -c /config.ini
+
+Similar solution allows to syncronize remote(not uploaded) resources with data.world::
+
+    * 8 * * * paster --plugin=ckanext-datadotworld datadotworld sync_resources -c /config.ini
 
 ------------------------
 Development Installation

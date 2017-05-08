@@ -2,6 +2,7 @@ from ckan.lib.cli import CkanCommand
 from pylons import config
 import ckan.model as model
 from ckanext.datadotworld.model.extras import Extras
+from ckanext.datadotworld.api import API
 import paste.script
 import logging
 from migrate.versioning.shell import main
@@ -51,6 +52,8 @@ class DataDotWorldCommand(CkanCommand):
             self._downgrade()
         elif self.args[0] == 'push_failed':
             self._push_failed()
+        elif self.args[0] == 'sync_resources':
+            self._sync_resources()
         else:
             print(self.usage)
 
@@ -67,6 +70,19 @@ class DataDotWorldCommand(CkanCommand):
                 'datadotworld.syncronize',
                 args=[record.package_id, ckan_ini_filepath])
 
+    def _sync_resources(self):
+
+        queue = model.Session.query(Extras).join(model.Package).join(
+            model.Resource).filter(model.Resource.url_type == None)
+        for record in queue:
+            try:
+                creds = record.package.get_groups(
+                    'organization').pop().datadotworld_credentials
+            except Exception as e:
+                print(e)
+                continue
+            api = API(creds.owner, creds.key)
+            api.sync_resources(record.id)
 
     def _init(self):
         try:

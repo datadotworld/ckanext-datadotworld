@@ -122,6 +122,13 @@ class DataDotWorldController(base.BaseController):
                 extra['errors'] = e.error_dict
                 extra['error_summary'] = e.error_summary
             else:
+
+                model.Session.query(Extras).join(
+                    model.Package
+                ).join(
+                    model.Group, model.Package.owner_org == model.Group.id
+                ).filter(model.Group.id == c.group.id).update(
+                    {'state': 'pending'})
                 model.Session.commit()
                 h.flash_success('Saved')
                 if tk.asbool(c.credentials.integration):

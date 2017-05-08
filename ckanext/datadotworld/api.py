@@ -85,6 +85,7 @@ class API:
     api_create = api_root + '/datasets/{owner}'
     api_update = api_create + '/{name}'
     api_res_create = api_update + '/files'
+    api_res_sync = api_update + '/sync'
     api_res_update = api_res_create + '/{file}'
     api_res_delete = api_res_create + '/{file}'
 
@@ -103,12 +104,24 @@ class API:
         action = self._update if extras else self._create
         if not extras:
             extras = Extras(package=entity, owner=self.owner)
+            model.Session.add(extras)
         extras.state = States.pending
-        model.Session.add(extras)
         model.Session.commit()
 
         action(pkg_dict, entity)
         model.Session.commit()
+
+    def sync_resources(self, id):
+        url = self.api_res_sync.format(
+            owner=self.owner,
+            name=id
+        )
+        resp = requests.get(url, headers=self._default_headers())
+        msg = '{0} - {1:20} - {2}'.format(
+            resp.status_code, id, resp.content
+        )
+        print(msg)
+        log.info(msg)
 
     @classmethod
     def generate_link(cls, owner, package=None):
@@ -131,7 +144,7 @@ class API:
             name='definitely-fake-dataset-name'
         )
         resp = requests.get(url, headers=headers)
-        print(resp, resp.content, url)
+
         if resp.status_code == 401:
             return False
         return True
