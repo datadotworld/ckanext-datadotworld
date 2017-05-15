@@ -27,12 +27,14 @@ def syncronize_org(id):
 
 
 class DataDotWorldController(base.BaseController):
-    def list_failed(self):
+    def list_sync(self, state):
         orgs = dh.admin_in_orgs(c.user)
         if not orgs:
             base.abort(401, _('User %r not authorized to see this page') % (
                 c.user))
-        extra = {}
+        extra = {
+            'displayed_state': state
+        }
         ids = [org.id for org in orgs]
         query = model.Session.query(
             model.Package.name,
@@ -45,7 +47,7 @@ class DataDotWorldController(base.BaseController):
         ).join(
             Extras
         ).filter(
-            Extras.state == 'failed'
+            Extras.state == state
         )
         extra['datasets'] = query.all()
         for pkg in extra['datasets']:
@@ -55,7 +57,7 @@ class DataDotWorldController(base.BaseController):
                 pkg.message = {
                     'RAW message': pkg.message
                 }
-        return base.render('datadotworld/list_failed.html', extra_vars=extra)
+        return base.render('datadotworld/list_sync.html', extra_vars=extra)
 
 
     def edit(self, id):
