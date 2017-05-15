@@ -60,6 +60,10 @@
 
 
 /* The switch - the box around the slider */
+.control-group.switch{
+    margin-top: -30px;
+    margin-bottom: 30px;
+}
 .switch .checkbox {
     margin-top: 2px;
     position: relative;

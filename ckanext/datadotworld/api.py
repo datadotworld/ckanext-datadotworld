@@ -57,6 +57,8 @@ def _get_creds_if_must_sync(pkg_dict):
 
 def notify(pkg_id):
     pkg_dict = get_action('package_show')(get_context(), {'id': pkg_id})
+    if pkg_dict.get('type', 'dataset') != 'dataset':
+        return
     credentials = _get_creds_if_must_sync(pkg_dict)
     if not credentials:
         return
