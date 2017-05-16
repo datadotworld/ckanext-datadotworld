@@ -88,6 +88,9 @@ a[data-module=info-popover]:hover, a[data-module=info-popover]:focus {
     background: #f0f8fe;
     border: 1px solid #13689c;
 }
+[data-module="data-world-credentials-form"] .popover .popover-content {
+    word-break: normal;
+}
 label .popover {
         font-weight: normal;
 
