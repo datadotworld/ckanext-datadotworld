@@ -219,7 +219,15 @@ class API:
         res = requests.put(url, data=json.dumps(data), headers=headers)
         extras.message = res.content
 
-        if res.status_code >= 400:
+        if res.status_code == 404:
+            log.warn('[update {0}] Package not exists. Creating...')
+            url = self.api_create.format(owner=self.owner)
+            res = requests.post(url, data=json.dumps(data), headers=headers)
+            if res.status_code == 200:
+                log.info('Successfuly created')
+            else:
+                log.error('Create package:' + res.content)
+        elif res.status_code >= 400:
             extras.state = States.failed
             log.error('Update package:' + res.content)
         else:
