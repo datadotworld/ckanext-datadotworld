@@ -3,7 +3,8 @@ ckan.module('info-popover', function($, _) {
     return {
         initialize: function() {
             this.el.popover({
-                trigger: 'focus'
+                trigger: 'focus',
+                html: true
             });
         }
     };
