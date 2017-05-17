@@ -54,13 +54,11 @@
 a i.icon-data-world {
     background: url("/images/dw-sparkle-badge.png") 50% no-repeat;
     background-size: contain;
-    filter: hue-rotate(90deg);
 }
 
 .active a i.icon-data-world {
     background: url("/images/dw-sparkle-badge-active.png") 50% no-repeat;
     background-size: contain;
-    filter: hue-rotate(90deg);
 }
 a i.icon-data-world:before{
     content: 'ico';
