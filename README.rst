@@ -12,6 +12,23 @@ Requirements
 For example, you might want to mention here which versions of CKAN this
 extension works with.
 
+------------------
+Supported versions
+------------------
+
+All CKAN versions from version 2.4(including 2.7).
+
+All versions support celery backend but version 2.7 allows to use RQ instead.
+There are no any particular changes in order to use new backend - just start
+it using::
+
+    paster --plugin=ckan jobs worker -c /config.ini
+
+instead of::
+
+    paster celeryd run -c /config.ini
+
+Details at http://docs.ckan.org/en/latest/maintaining/background-tasks.html
 
 ------------
 Installation
