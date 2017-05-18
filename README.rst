@@ -70,11 +70,11 @@ Development Installation
 To install ckanext-datadotworld for development, activate your CKAN virtualenv and
 do the following::
 
-    git clone https://github.com/datadotworld/ckanext-datadotworld.git
-    cd ckanext-datadotworld
-    python setup.py develop
-    pip install -r dev-requirements.txt
-    paster datadotworld init -c /config.ini
+	git clone https://github.com/datadotworld/ckanext-datadotworld.git
+	cd ckanext-datadotworld
+	python setup.py develop
+	pip install -r dev-requirements.txt
+paster datadotworld init -c /config.ini
 
 -----------------
 Running the Tests
