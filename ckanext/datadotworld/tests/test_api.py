@@ -80,6 +80,9 @@ class TestAPI(TestCase):
         pkg = Dataset(owner_org=self.org['id'], state='draft')
         self.assertFalse(api.notify(pkg['id']))
 
+        pkg = Dataset(owner_org=self.org['id'], state='deleted')
+        self.assertFalse(api.notify(pkg['id']))
+
         pkg = Dataset(owner_org=self.org['id'])
         self.assertTrue(api.notify(pkg['id']))
 

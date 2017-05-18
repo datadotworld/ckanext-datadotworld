@@ -91,11 +91,12 @@ do::
 Running the Tests
 -----------------
 
+Make sure you followed CKAN testing guide(http://docs.ckan.org/en/latest/contributing/test.html).
 To run the tests, do::
 
-    nosetests --nologcapture --with-pylons=test.ini
+    nosetests --ckan --nologcapture --with-pylons=test.ini
 
 To run the tests and produce a coverage report, first make sure you have
 coverage installed in your virtualenv (``pip install coverage``) then run::
 
-    nosetests --nologcapture --with-pylons=test.ini --with-coverage --cover-package=ckanext.datadotworld --cover-inclusive --cover-erase --cover-tests
+    nosetests --ckan --nologcapture --with-pylons=test.ini --with-coverage --cover-package=ckanext.datadotworld --cover-inclusive --cover-erase --cover-tests
