@@ -58,7 +58,7 @@ def notify(pkg_id):
     credentials = _get_creds_if_must_sync(pkg_dict)
     if not credentials:
         return False
-    if pkg_dict.get('state') == 'draft':
+    if pkg_dict.get('state') != 'active':
         return False
     api = API(credentials.owner, credentials.key)
     api.sync(pkg_dict)
