@@ -51,14 +51,19 @@
     background: #336d9d;
 }
 
-.data-world-tab {
-    font-family: initial;
-    font-weight: bold;
-    color: #13689c;
-    font-size: 18px;
+a i.icon-data-world {
+    background: url("/images/dw-sparkle-badge.png") 50% no-repeat;
+    background-size: contain;
 }
 
-
+.active a i.icon-data-world {
+    background: url("/images/dw-sparkle-badge-active.png") 50% no-repeat;
+    background-size: contain;
+}
+a i.icon-data-world:before{
+    content: 'ico';
+    color: transparent;
+}
 /* The switch - the box around the slider */
 .control-group.switch{
     margin-top: -30px;
@@ -87,6 +92,9 @@ a[data-module=info-popover]:hover, a[data-module=info-popover]:focus {
 [data-module="data-world-credentials-form"] .popover {
     background: #f0f8fe;
     border: 1px solid #13689c;
+}
+[data-module="data-world-credentials-form"] .popover .popover-content {
+    word-break: normal;
 }
 label .popover {
         font-weight: normal;
