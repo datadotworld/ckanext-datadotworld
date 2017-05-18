@@ -103,12 +103,16 @@ class API:
         entity = model.Package.get(pkg_dict['id'])
         pkg_dict = get_action('package_show')(get_context(), {'id': entity.id})
         extras = entity.datadotworld_extras
-        action = self._update if extras else self._create
+        action = self._update if extras and extras.id else self._create
         if not extras:
             extras = Extras(package=entity, owner=self.owner)
             model.Session.add(extras)
         extras.state = States.pending
-        model.Session.commit()
+        try:
+            model.Session.commit()
+        except Exception as e:
+            model.Session.rollback()
+            log.warn('[sync problem] {0}'.format(e))
 
         action(pkg_dict, entity)
         model.Session.commit()
