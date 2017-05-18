@@ -15,11 +15,11 @@ All versions support celery backend but version 2.7 allows to use RQ instead.
 There are no changes required to use new backend - just start
 it using::
 
-    paster --plugin=ckan jobs worker -c /config.ini
+	paster --plugin=ckan jobs worker -c /config.ini
 
 instead of::
 
-    paster celeryd run -c /config.ini
+	paster celeryd run -c /config.ini
 
 Details at http://docs.ckan.org/en/latest/maintaining/background-tasks.html
 
@@ -31,24 +31,22 @@ To install ckanext-datadotworld:
 
 1. Activate your CKAN virtual environment, for example::
 
-     . /usr/lib/ckan/default/bin/activate
+	. /usr/lib/ckan/default/bin/activate
 
 2. Install the ckanext-datadotworld Python package into your virtual environment::
+	
+	pip install ckanext-datadotworld
 
-     pip install ckanext-datadotworld
-
-3. Add ``datadotworld`` to the ``ckan.plugins`` setting in your CKAN
-   config file (by default the config file is located at
-   ``/etc/ckan/default/production.ini``).
+3. Add ``datadotworld`` to the ``ckan.plugins`` setting in your CKAN config file (by default the config file is located at ``/etc/ckan/default/production.ini``).
 
 4. Create DB tables::
 
-     paster datadotworld init -c /config.ini
-     paster datadotworld upgrade -c /config.ini
+	paster datadotworld init -c /config.ini
+	paster datadotworld upgrade -c /config.ini
 
 5. Start celery daemon either with suprevisor or using paster::
 
-     paster celeryd run -c /config.ini
+	paster celeryd run -c /config.ini
 
 
 ---------------
@@ -57,11 +55,11 @@ Config Settings
 
 Attempts to push failed datasets can be scheduled by adding the following line to cron::
 
-    * 8 * * * paster --plugin=ckanext-datadotworld datadotworld push_failed -c /config.ini
+	* 8 * * * paster --plugin=ckanext-datadotworld datadotworld push_failed -c /config.ini
 
 A similar solution enables syncronization with remote (i.e. not uploaded) resources with data.world::
 
-    * 8 * * * paster --plugin=ckanext-datadotworld datadotworld sync_resources -c /config.ini
+	* 8 * * * paster --plugin=ckanext-datadotworld datadotworld sync_resources -c /config.ini
 
 ------------------------
 Development Installation
@@ -74,7 +72,7 @@ do the following::
 	cd ckanext-datadotworld
 	python setup.py develop
 	pip install -r dev-requirements.txt
-paster datadotworld init -c /config.ini
+	paster datadotworld init -c /config.ini
 
 -----------------
 Running the Tests
@@ -82,9 +80,8 @@ Running the Tests
 
 To run the tests, do the following::
 
-    nosetests --nologcapture --with-pylons=test.ini
+	nosetests --nologcapture --with-pylons=test.ini
 
-To run the tests and produce a coverage report, first make sure you have
-coverage installed in your virtualenv (``pip install coverage``) then run::
+To run the tests and produce a coverage report, first make sure you have coverage installed in your virtualenv (``pip install coverage``) then run::
 
-    nosetests --nologcapture --with-pylons=test.ini --with-coverage --cover-package=ckanext.datadotworld --cover-inclusive --cover-erase --cover-tests
+	nosetests --nologcapture --with-pylons=test.ini --with-coverage --cover-package=ckanext.datadotworld --cover-inclusive --cover-erase --cover-tests
