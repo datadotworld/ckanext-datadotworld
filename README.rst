@@ -34,7 +34,7 @@ To install ckanext-datadotworld:
 	. /usr/lib/ckan/default/bin/activate
 
 2. Install the ckanext-datadotworld Python package into your virtual environment::
-	
+
 	pip install ckanext-datadotworld
 
 3. Add ``datadotworld`` to the ``ckan.plugins`` setting in your CKAN config file (by default the config file is located at ``/etc/ckan/default/production.ini``).
@@ -78,10 +78,11 @@ do the following::
 Running the Tests
 -----------------
 
+Make sure you followed CKAN testing guide(http://docs.ckan.org/en/latest/contributing/test.html).
 To run the tests, do the following::
 
-	nosetests --nologcapture --with-pylons=test.ini
+    nosetests --ckan --nologcapture --with-pylons=test.ini
 
 To run the tests and produce a coverage report, first make sure you have coverage installed in your virtualenv (``pip install coverage``) then run::
 
-	nosetests --nologcapture --with-pylons=test.ini --with-coverage --cover-package=ckanext.datadotworld --cover-inclusive --cover-erase --cover-tests
+    nosetests --ckan --nologcapture --with-pylons=test.ini --with-coverage --cover-package=ckanext.datadotworld --cover-inclusive --cover-erase --cover-tests
