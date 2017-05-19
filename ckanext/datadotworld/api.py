@@ -1,16 +1,18 @@
 import json
-from collections import defaultdict
+import os.path
 import logging
-from webhelpers.text import truncate
+
 import requests
-from ckanext.datadotworld.model.extras import Extras
-from ckanext.datadotworld.model import States
-from ckan.lib.munge import munge_name
+from bleach import clean
+from markdown import markdown
+from webhelpers.text import truncate
+
 import ckan.model as model
 from ckan.logic import get_action
-import os.path
-from markdown import markdown
-from bleach import clean
+from ckan.lib.munge import munge_name
+
+from ckanext.datadotworld.model import States
+from ckanext.datadotworld.model.extras import Extras
 
 
 log = logging.getLogger(__name__)
@@ -32,15 +34,9 @@ def get_context():
 
 
 def dataworld_name(title):
+    cleaned_title = ' '.join(title.split()).replace('_', '-').replace(' ', '-')
     return munge_name(
-        '-'.join(
-            filter(
-                None,
-                filter(
-                    None, ' '.join(title.split()).replace('_', '-')
-                ).split('-')
-            )
-        )
+        '-'.join(filter(None, cleaned_title.split('-')))
     )
 
 
@@ -58,14 +54,15 @@ def _get_creds_if_must_sync(pkg_dict):
 def notify(pkg_id):
     pkg_dict = get_action('package_show')(get_context(), {'id': pkg_id})
     if pkg_dict.get('type', 'dataset') != 'dataset':
-        return
+        return False
     credentials = _get_creds_if_must_sync(pkg_dict)
     if not credentials:
-        return
-    if pkg_dict.get('state') == 'draft':
-        return
+        return False
+    if pkg_dict.get('state') != 'active':
+        return False
     api = API(credentials.owner, credentials.key)
     api.sync(pkg_dict)
+    return True
 
 
 def _prepare_resource_url(res):
@@ -93,67 +90,29 @@ class API:
 
     auth = 'Bearer {key}'
 
-    def __init__(self, owner, key):
-        """Initialize client with credentials.
-        """
-        self.owner = owner
-        self.key = key
-
-    def sync(self, pkg_dict):
-        entity = model.Package.get(pkg_dict['id'])
-        pkg_dict = get_action('package_show')(get_context(), {'id': entity.id})
-        extras = entity.datadotworld_extras
-        action = self._update if extras and extras.id else self._create
-        if not extras:
-            extras = Extras(package=entity, owner=self.owner)
-            model.Session.add(extras)
-        extras.state = States.pending
-        try:
-            model.Session.commit()
-        except Exception as e:
-            model.Session.rollback()
-            log.warn('[sync problem] {0}'.format(e))
-
-        action(pkg_dict, entity)
-        model.Session.commit()
-
-    def sync_resources(self, id):
-        url = self.api_res_sync.format(
-            owner=self.owner,
-            name=id
-        )
-        resp = requests.get(url, headers=self._default_headers())
-        msg = '{0} - {1:20} - {2}'.format(
-            resp.status_code, id, resp.content
-        )
-        print(msg)
-        log.info(msg)
-
     @classmethod
     def generate_link(cls, owner, package=None):
-        url = cls.root + '/' + owner
+        """Create link to data.world dataset.
+        """
+        parts = [cls.root, owner]
         if package:
-            url += '/' + package
-        return url
+            parts.append(package)
+        return '/'.join(parts)
 
-    @classmethod
-    def creds_from_id(cls, org_id):
+    @staticmethod
+    def creds_from_id(org_id):
+        """Find data.world credentials by org id.
+        """
         org = model.Group.get(org_id)
         if not org:
             return
         return org.datadotworld_credentials
 
-    def check_credentials(self):
-        headers = self._default_headers()
-        url = self.api_update.format(
-            owner=self.owner,
-            name='definitely-fake-dataset-name'
-        )
-        resp = requests.get(url, headers=headers)
-
-        if resp.status_code == 401:
-            return False
-        return True
+    def __init__(self, owner, key):
+        """Initialize client with credentials.
+        """
+        self.owner = owner
+        self.key = key
 
     def _default_headers(self):
         return {
@@ -161,70 +120,23 @@ class API:
             'Content-type': 'application/json'
         }
 
-    def _create(self, pkg_dict, entity):
-        data = self._format_data(pkg_dict)
-        extras = entity.datadotworld_extras
-        extras.id = dataworld_name(data['title'])
+    def _get(self, url):
+        """Simple wrapper around GET request.
+        """
         headers = self._default_headers()
-        url = self.api_create.format(owner=self.owner)
-        res = requests.post(url, data=json.dumps(data), headers=headers)
-        extras.message = res.content
-        if res.status_code < 300:
-            resp_json = res.json()
-            if 'uri' in resp_json:
-                new_id = os.path.basename(resp_json['uri'])
-                log.info('Autogenerated ID: {0}; Remote ID: {1}'.format(
-                    extras.id,
-                    new_id
-                ))
-                extras.id = new_id
+        return requests.get(url=url, headers=headers)
 
-            extras.state = States.uptodate
-        elif res.status_code == 400:
-            log.warn('[create] Try to replace {id}'.format(id=extras.id))
-            url = self.api_update.format(owner=self.owner, name=extras.id)
-            remote_res = requests.put(url, data=json.dumps(data), headers=headers)
-            extras.message = remote_res.content
-            if remote_res.status_code == 200:
-                extras.state = States.uptodate
-            else:
-                extras.state = States.failed
-                log.error('[create {id}] Replace error:'.format(
-                    id=extras.id) + remote_res.content)
-                log.error('[create {id}]'.format(id=extras.id) + res.content)
-        else:
-            extras.state = States.failed
-            log.error('[create {id}]'.format(id=extras.id) + res.content)
-
-        return data
-
-    def _update(self, pkg_dict, entity):
-        data = self._format_data(pkg_dict)
-        extras = entity.datadotworld_extras
-
+    def _post(self, url, data):
+        """Simple wrapper around POST request.
+        """
         headers = self._default_headers()
-        url = self.api_update.format(owner=self.owner, name=extras.id)
-        remote_res = requests.get(url, headers=headers)
-        if remote_res.status_code != 200:
-            log.warn('[update {0}]Unable to get remote: {1}'.format(
-                extras.id, remote_res.content))
-        else:
-            remote_data = remote_res.json()
-            for key, value in data.items():
-                if remote_data.get(key) != value:
-                    break
-            else:
-                return
+        return requests.post(url=url, data=json.dumps(data), headers=headers)
 
-        res = requests.put(url, data=json.dumps(data), headers=headers)
-        extras.message = res.content
-
-        if res.status_code >= 400:
-            extras.state = States.failed
-            log.error('Update package:' + res.content)
-        else:
-            extras.state = States.uptodate
-        return data
+    def _put(self, url, data):
+        """Simple wrapper around PUT request.
+        """
+        headers = self._default_headers()
+        return requests.put(url=url, data=json.dumps(data), headers=headers)
 
     def _format_data(self, pkg_dict):
         tags = []
@@ -248,3 +160,135 @@ class API:
         )
 
         return data
+
+    def _is_dict_changed(self, new_data, old_data):
+        for key, value in new_data.items():
+            if old_data.get(key) != value:
+                return True
+        return False
+
+    def _create_request(self, data, id):
+        url = self.api_create.format(owner=self.owner)
+        res = self._post(url, data)
+        if res.status_code == 200:
+            log.info('[{0}] Successfuly created'.format(id))
+        else:
+            log.warn(
+                '[{0}] Create package: {1}'.format(id, res.content))
+
+        return res
+
+    def _update_request(self, data, id):
+        url = self.api_update.format(owner=self.owner, name=id)
+        res = self._put(url, data)
+        if res.status_code == 200:
+            log.info('[{0}] Successfuly updated'.format(id))
+        else:
+            log.warn(
+                '[{0}] Update package: {1}'.format(id, res.content))
+
+        return res
+
+    def _is_update_required(self, data, id):
+        url = self.api_update.format(owner=self.owner, name=id)
+        remote_res = self._get(url)
+        if remote_res.status_code != 200:
+            log.warn(
+                '[{0}] Unable to get package for dirty check:{1}'.format(
+                    id, remote_res.content))
+        else:
+            remote_data = remote_res.json()
+            if not self._is_dict_changed(data, remote_data):
+                return False
+        return True
+
+    def _create(self, data, extras):
+        res = self._create_request(data, extras.id)
+        extras.message = res.content
+        if res.status_code == 200:
+            resp_json = res.json()
+            if 'uri' in resp_json:
+                new_id = os.path.basename(resp_json['uri'])
+                extras.id = new_id
+
+            extras.state = States.uptodate
+        else:
+            self._replace(data, extras)
+
+        return data
+
+    def _replace(self, data, extras):
+        log.warn('[{0}] Try to replace'.format(extras.id))
+        remote_res = self._update_request(data, extras.id)
+        extras.message = remote_res.content
+        if remote_res.status_code == 200:
+            extras.state = States.uptodate
+        else:
+            extras.state = States.failed
+            log.error('[{0}] Replace package: {1}'.format(
+                extras.id, remote_res.content))
+        return data
+
+    def _update(self, data, extras):
+        if not self._is_update_required(data, extras.id):
+            return data
+
+        res = self._update_request(data, extras.id)
+        extras.message = res.content
+
+        if res.status_code == 200:
+            extras.state = States.uptodate
+        elif res.status_code == 404:
+            log.warn('[{0}] Package not exists. Creating...'.format(
+                extras.id))
+            res = self._create(data, extras)
+        else:
+            extras.state = States.failed
+            log.error('[{0}] Update package error:{1}'.format(
+                extras.id, res.content))
+        return data
+
+    def sync(self, pkg_dict):
+        entity = model.Package.get(pkg_dict['id'])
+        pkg_dict = get_action('package_show')(get_context(), {'id': entity.id})
+        data_dict = self._format_data(pkg_dict)
+
+        extras = entity.datadotworld_extras
+        action = self._update if extras and extras.id else self._create
+        if not extras:
+            extras = Extras(
+                package=entity, owner=self.owner,
+                id=dataworld_name(data_dict['title']))
+            model.Session.add(extras)
+            extras.state = States.pending
+        try:
+            model.Session.commit()
+        except Exception as e:
+            model.Session.rollback()
+            log.error('[sync problem] {0}'.format(e))
+
+        action(data_dict, extras)
+        model.Session.commit()
+
+    def sync_resources(self, id):
+        url = self.api_res_sync.format(
+            owner=self.owner,
+            name=id
+        )
+        resp = self._get(url)
+        msg = '{0} - {1:20} - {2}'.format(
+            resp.status_code, id, resp.content
+        )
+        print(msg)
+        log.info(msg)
+
+    def check_credentials(self):
+        url = self.api_update.format(
+            owner=self.owner,
+            name='definitely-fake-dataset-name'
+        )
+        resp = self._get(url)
+
+        if resp.status_code == 401:
+            return False
+        return True
