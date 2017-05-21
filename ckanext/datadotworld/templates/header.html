@@ -3,7 +3,7 @@
 {% block header_account_logged %}
   {% if h.datadotworld_admin_in_orgs(c.user) %}
     <li>
-      <a href="{{ h.url_for('list_dataworld_sync', state='failed') }}" title="{{ _('Data.world failed pushes') }}">
+      <a href="{{ h.url_for('list_dataworld_sync', state='failed') }}" title="{{ _('data.world failed pushes') }}">
         <i class="icon-warning-sign" aria-hidden="true"></i>
       </a>
     </li>
