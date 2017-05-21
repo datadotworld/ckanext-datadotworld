@@ -2,8 +2,8 @@
 ckanext-datadotworld
 =============
 
-With this extension enabled, organization manage section has additional tab
-`data.world`, where you can specify syncronization options.
+With this extension enabled, the manage view for organizations is provided with the additional tab
+`data.world`. Within the data.world tab organization admins can specify syncronization options that will apply for that organization.
 
 ------------------
 Supported versions
@@ -11,7 +11,7 @@ Supported versions
 
 CKAN version 2.4 or greater (including 2.7).
 
-All versions support celery backend but version 2.7 allows to use RQ instead.
+All versions support celery backend, but version 2.7 will use RQ.
 There are no changes required to use new backend - just start
 it using::
 
@@ -78,7 +78,7 @@ do the following::
 Running the Tests
 -----------------
 
-Make sure you followed CKAN testing guide(http://docs.ckan.org/en/latest/contributing/test.html).
+Make sure you follow the CKAN testing guide (http://docs.ckan.org/en/latest/contributing/test.html).
 To run the tests, do the following::
 
     nosetests --ckan --nologcapture --with-pylons=test.ini
