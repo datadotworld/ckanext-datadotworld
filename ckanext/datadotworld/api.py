@@ -141,14 +141,12 @@ class API:
     def _format_data(self, pkg_dict):
         tags = []
         notes = pkg_dict.get('notes') or ''
-        description = truncate(
-            clean(markdown(notes), tags=[], strip=True),
-            120)
+
         for tag in pkg_dict.get('tags', []):
             tags.append(tag['name'])
         data = dict(
-            title=pkg_dict['title'],
-            description=description,
+            title=pkg_dict['name'],
+            description=pkg_dict['title'],
             summary=notes,
             tags=list(set(tags)),
             license=licenses.get(pkg_dict.get('license_id'), 'Other'),
@@ -258,7 +256,7 @@ class API:
         if not extras:
             extras = Extras(
                 package=entity, owner=self.owner,
-                id=dataworld_name(data_dict['title']))
+                id=data_dict['title'])
             model.Session.add(extras)
             extras.state = States.pending
         try:

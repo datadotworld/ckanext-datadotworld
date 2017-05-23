@@ -142,12 +142,12 @@ class TestAPI(TestCase):
         result = self.api._format_data(pkg)
         expect = {
             'files': [],
-            'description': 'Just another test dataset.',
+            'description': pkg['title'],
             'license': 'Other',
             'tags': ['xx'],
-            'title': 'Test Dataset',
+            'title': pkg['name'],
             'visibility': 'OPEN',
-            'summary': 'Just another test dataset.'}
+            'summary': pkg['notes']}
         self.assertEqual(expect, result)
 
     def test_is_dict_changed(self):
