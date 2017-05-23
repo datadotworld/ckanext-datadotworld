@@ -74,7 +74,8 @@ def _prepare_resource_url(res):
     file, ext = os.path.splitext(os.path.basename(link))
     return dict(
         name=(name or file) + ext,
-        source=dict(url=link)
+        source=dict(url=link),
+        description=res.get('description', '')
     )
 
 
