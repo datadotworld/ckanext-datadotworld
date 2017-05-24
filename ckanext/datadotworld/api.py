@@ -71,10 +71,21 @@ def _prepare_resource_url(res):
     link = res['url']
     name = res['name']
 
-    file, ext = os.path.splitext(os.path.basename(link))
+    link_name, link_ext = os.path.splitext(os.path.basename(link))
+    file_name, file_ext = os.path.splitext(os.path.basename(name))
+
+    existing_format = res.get('format')
+    if existing_format:
+        ext = '.' + existing_format.lower()
+    elif file_ext:
+        ext = file_ext
+    else:
+        ext = link_ext.split('#').pop(0).split('?').pop(0)
+
     return dict(
-        name=(name or file) + ext,
-        source=dict(url=link)
+        name=(file_name or link_name) + ext,
+        source=dict(url=link),
+        description=res.get('description', '')
     )
 
 
@@ -141,14 +152,12 @@ class API:
     def _format_data(self, pkg_dict):
         tags = []
         notes = pkg_dict.get('notes') or ''
-        description = truncate(
-            clean(markdown(notes), tags=[], strip=True),
-            120)
+
         for tag in pkg_dict.get('tags', []):
             tags.append(tag['name'])
         data = dict(
-            title=pkg_dict['title'],
-            description=description,
+            title=pkg_dict['name'],
+            description=pkg_dict['title'],
             summary=notes,
             tags=list(set(tags)),
             license=licenses.get(pkg_dict.get('license_id'), 'Other'),
@@ -258,7 +267,7 @@ class API:
         if not extras:
             extras = Extras(
                 package=entity, owner=self.owner,
-                id=dataworld_name(data_dict['title']))
+                id=data_dict['title'])
             model.Session.add(extras)
             extras.state = States.pending
         try:
