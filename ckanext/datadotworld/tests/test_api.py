@@ -91,15 +91,42 @@ class TestAPI(TestCase):
     def test_prepare_resource_url(self):
         res = {'url': 'a/b/c.csv', 'name': 'File'}
         expect = {
+            'description': '',
             'name': 'File.csv',
             'source': {'url': res['url']}}
         self.assertEqual(expect, api._prepare_resource_url(res))
 
-        res = {'url': 'a/b/c.csv', 'name': ''}
+        res = {'url': 'a/b/c.csv', 'name': '', 'description': 'xxx'}
         expect = {
             'name': 'c.csv',
+            'description': 'xxx',
             'source': {'url': res['url']}}
         self.assertEqual(expect, api._prepare_resource_url(res))
+
+    def test_prepared_resources_names(self):
+        res = {'url': 'a/b/c.csv', 'name': 'File'}
+        expect = 'File.csv'
+        self.assertEqual(expect, api._prepare_resource_url(res)['name'])
+
+        res = {'url': 'a/b/c.csv?a=1', 'name': 'File'}
+        expect = 'File.csv'
+        self.assertEqual(expect, api._prepare_resource_url(res)['name'])
+
+        res = {'url': 'a/b/c.csv#hash', 'name': 'File'}
+        expect = 'File.csv'
+        self.assertEqual(expect, api._prepare_resource_url(res)['name'])
+
+        res = {'url': 'a/b/c.csv', 'name': 'File', 'format': 'XML'}
+        expect = 'File.xml'
+        self.assertEqual(expect, api._prepare_resource_url(res)['name'])
+
+        res = {'url': 'a/b/c.csv', 'name': 'File.xml'}
+        expect = 'File.xml'
+        self.assertEqual(expect, api._prepare_resource_url(res)['name'])
+
+        res = {'url': 'a/b/c.csv', 'name': 'File.png', 'format': 'XML'}
+        expect = 'File.xml'
+        self.assertEqual(expect, api._prepare_resource_url(res)['name'])
 
     def test_generate_link(self):
         self.assertEqual(API.root + '/x', API.generate_link('x'))
@@ -142,12 +169,12 @@ class TestAPI(TestCase):
         result = self.api._format_data(pkg)
         expect = {
             'files': [],
-            'description': 'Just another test dataset.',
+            'description': pkg['title'],
             'license': 'Other',
             'tags': ['xx'],
-            'title': 'Test Dataset',
+            'title': pkg['name'],
             'visibility': 'OPEN',
-            'summary': 'Just another test dataset.'}
+            'summary': pkg['notes']}
         self.assertEqual(expect, result)
 
     def test_is_dict_changed(self):
