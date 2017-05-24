@@ -103,6 +103,31 @@ class TestAPI(TestCase):
             'source': {'url': res['url']}}
         self.assertEqual(expect, api._prepare_resource_url(res))
 
+    def test_prepared_resources_names(self):
+        res = {'url': 'a/b/c.csv', 'name': 'File'}
+        expect = 'File.csv'
+        self.assertEqual(expect, api._prepare_resource_url(res)['name'])
+
+        res = {'url': 'a/b/c.csv?a=1', 'name': 'File'}
+        expect = 'File.csv'
+        self.assertEqual(expect, api._prepare_resource_url(res)['name'])
+
+        res = {'url': 'a/b/c.csv#hash', 'name': 'File'}
+        expect = 'File.csv'
+        self.assertEqual(expect, api._prepare_resource_url(res)['name'])
+
+        res = {'url': 'a/b/c.csv', 'name': 'File', 'format': 'XML'}
+        expect = 'File.xml'
+        self.assertEqual(expect, api._prepare_resource_url(res)['name'])
+
+        res = {'url': 'a/b/c.csv', 'name': 'File.xml'}
+        expect = 'File.xml'
+        self.assertEqual(expect, api._prepare_resource_url(res)['name'])
+
+        res = {'url': 'a/b/c.csv', 'name': 'File.png', 'format': 'XML'}
+        expect = 'File.xml'
+        self.assertEqual(expect, api._prepare_resource_url(res)['name'])
+
     def test_generate_link(self):
         self.assertEqual(API.root + '/x', API.generate_link('x'))
         self.assertEqual(API.root + '/x/y', API.generate_link('x', 'y'))
