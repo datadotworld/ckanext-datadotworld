@@ -82,11 +82,16 @@ def _prepare_resource_url(res):
     else:
         ext = link_ext.split('#').pop(0).split('?').pop(0)
 
-    return dict(
+    prepared_data = dict(
         name=(file_name or link_name) + ext,
         source=dict(url=link),
         description=res.get('description', '')
     )
+
+    if not prepared_data['description']:
+        del prepared_data['description']
+
+    return prepared_data
 
 
 class API:
