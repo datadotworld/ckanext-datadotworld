@@ -35,7 +35,7 @@ To install ckanext-datadotworld:
 
 2. Install the ckanext-datadotworld Python package into your virtual environment::
 
-	pip install ckanext-datadotworld
+	pip install git+https://github.com/datadotworld/ckanext-datadotworld
 
 3. Add ``datadotworld`` to the ``ckan.plugins`` setting in your CKAN config file (by default the config file is located at ``/etc/ckan/default/production.ini``).
 
