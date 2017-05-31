@@ -84,12 +84,13 @@ def _prepare_resource_url(res):
 
     prepared_data = dict(
         name=(file_name or link_name) + ext,
-        source=dict(url=link),
-        description=res.get('description', '')
+        source=dict(url=link)
     )
+    description = res.get('description', '')
 
-    if not prepared_data['description']:
-        del prepared_data['description']
+    if description:
+
+        prepared_data['description'] = truncate(description, 120)
 
     return prepared_data
 

@@ -102,6 +102,20 @@ class TestAPI(TestCase):
             'source': {'url': res['url']}}
         self.assertEqual(expect, api._prepare_resource_url(res))
 
+    def test_assert_description_truncation(self):
+        res = {'url': 'a/b/c.csv', 'name': 'File', 'description': 'aaa'}
+        truncated = api._prepare_resource_url(res)['description']
+        self.assertEqual('aaa', truncated)
+
+        res['description'] = 'a' * 120
+        truncated = api._prepare_resource_url(res)['description']
+        self.assertEqual('a' * 120, truncated)
+
+        res['description'] = 'a' * 130
+        truncated = api._prepare_resource_url(res)['description']
+        self.assertEqual('a' * 117 + '...', truncated)
+
+
     def test_prepared_resources_names(self):
         res = {'url': 'a/b/c.csv', 'name': 'File'}
         expect = 'File.csv'
