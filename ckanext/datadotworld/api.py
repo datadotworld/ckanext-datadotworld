@@ -58,7 +58,7 @@ def notify(pkg_id):
     credentials = _get_creds_if_must_sync(pkg_dict)
     if not credentials:
         return False
-    if pkg_dict.get('state') != 'active':
+    if pkg_dict.get('state') == 'draft':
         return False
     api = API(credentials.owner, credentials.key)
     api.sync(pkg_dict)
@@ -281,7 +281,10 @@ class API:
             model.Session.rollback()
             log.error('[sync problem] {0}'.format(e))
 
-        action(data_dict, extras)
+        if entity.state == 'deleted':
+            extras.state = States.deleted
+        else:
+            action(data_dict, extras)
         model.Session.commit()
 
     def sync_resources(self, id):

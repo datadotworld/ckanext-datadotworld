@@ -81,12 +81,11 @@ class TestAPI(TestCase):
         self.assertFalse(api.notify(pkg['id']))
 
         pkg = Dataset(owner_org=self.org['id'], state='deleted')
-        self.assertFalse(api.notify(pkg['id']))
+        self.assertTrue(api.notify(pkg['id']))
 
         pkg = Dataset(owner_org=self.org['id'])
         self.assertTrue(api.notify(pkg['id']))
-
-        sync.assert_called_once_with(pkg)
+        sync.assert_called_with(pkg)
 
     def test_prepare_resource_url(self):
         res = {'url': 'a/b/c.csv', 'name': 'File'}
@@ -350,9 +349,11 @@ class TestAPI(TestCase):
         self.assertFalse(create.called)
         self.assertTrue(update.called)
 
-        extras = Extras(package_id=pkg['id'])
-        model.Session.add(extras)
+        update.reset_mock()
+        pkg = Dataset(state='deleted')
         self.api.sync(pkg)
+        self.assertFalse(create.called)
+        self.assertFalse(update.called)
 
     @mock.patch(api.__name__ + '.API._get')
     def test_sync_resources(self, get):
