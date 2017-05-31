@@ -91,7 +91,6 @@ class TestAPI(TestCase):
     def test_prepare_resource_url(self):
         res = {'url': 'a/b/c.csv', 'name': 'File'}
         expect = {
-            'description': '',
             'name': 'File.csv',
             'source': {'url': res['url']}}
         self.assertEqual(expect, api._prepare_resource_url(res))
