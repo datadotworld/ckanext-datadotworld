@@ -115,6 +115,10 @@ class TestAPI(TestCase):
         truncated = api._prepare_resource_url(res)['description']
         self.assertEqual('a' * 117 + '...', truncated)
 
+        res['description'] = 'a' * 110 + ' ' + 'b' * 10
+        truncated = api._prepare_resource_url(res)['description']
+        self.assertEqual('a' * 110 + '...', truncated)
+
 
     def test_prepared_resources_names(self):
         res = {'url': 'a/b/c.csv', 'name': 'File'}

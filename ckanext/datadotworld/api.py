@@ -90,7 +90,8 @@ def _prepare_resource_url(res):
 
     if description:
 
-        prepared_data['description'] = truncate(description, 120)
+        prepared_data['description'] = truncate(
+            description, 120, whole_word=True)
 
     return prepared_data
 
