@@ -58,7 +58,7 @@ def notify(pkg_id):
     credentials = _get_creds_if_must_sync(pkg_dict)
     if not credentials:
         return False
-    if pkg_dict.get('state') != 'active':
+    if pkg_dict.get('state') == 'draft':
         return False
     api = API(credentials.owner, credentials.key)
     api.sync(pkg_dict)
@@ -84,12 +84,14 @@ def _prepare_resource_url(res):
 
     prepared_data = dict(
         name=(file_name or link_name) + ext,
-        source=dict(url=link),
-        description=res.get('description', '')
+        source=dict(url=link)
     )
+    description = res.get('description', '')
 
-    if not prepared_data['description']:
-        del prepared_data['description']
+    if description:
+
+        prepared_data['description'] = truncate(
+            description, 120, whole_word=True)
 
     return prepared_data
 
@@ -281,7 +283,10 @@ class API:
             model.Session.rollback()
             log.error('[sync problem] {0}'.format(e))
 
-        action(data_dict, extras)
+        if entity.state == 'deleted':
+            extras.state = States.deleted
+        else:
+            action(data_dict, extras)
         model.Session.commit()
 
     def sync_resources(self, id):

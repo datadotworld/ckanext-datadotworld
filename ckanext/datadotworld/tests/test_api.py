@@ -81,12 +81,11 @@ class TestAPI(TestCase):
         self.assertFalse(api.notify(pkg['id']))
 
         pkg = Dataset(owner_org=self.org['id'], state='deleted')
-        self.assertFalse(api.notify(pkg['id']))
+        self.assertTrue(api.notify(pkg['id']))
 
         pkg = Dataset(owner_org=self.org['id'])
         self.assertTrue(api.notify(pkg['id']))
-
-        sync.assert_called_once_with(pkg)
+        sync.assert_called_with(pkg)
 
     def test_prepare_resource_url(self):
         res = {'url': 'a/b/c.csv', 'name': 'File'}
@@ -101,6 +100,24 @@ class TestAPI(TestCase):
             'description': 'xxx',
             'source': {'url': res['url']}}
         self.assertEqual(expect, api._prepare_resource_url(res))
+
+    def test_assert_description_truncation(self):
+        res = {'url': 'a/b/c.csv', 'name': 'File', 'description': 'aaa'}
+        truncated = api._prepare_resource_url(res)['description']
+        self.assertEqual('aaa', truncated)
+
+        res['description'] = 'a' * 120
+        truncated = api._prepare_resource_url(res)['description']
+        self.assertEqual('a' * 120, truncated)
+
+        res['description'] = 'a' * 130
+        truncated = api._prepare_resource_url(res)['description']
+        self.assertEqual('a' * 117 + '...', truncated)
+
+        res['description'] = 'a' * 110 + ' ' + 'b' * 10
+        truncated = api._prepare_resource_url(res)['description']
+        self.assertEqual('a' * 110 + '...', truncated)
+
 
     def test_prepared_resources_names(self):
         res = {'url': 'a/b/c.csv', 'name': 'File'}
@@ -350,9 +367,11 @@ class TestAPI(TestCase):
         self.assertFalse(create.called)
         self.assertTrue(update.called)
 
-        extras = Extras(package_id=pkg['id'])
-        model.Session.add(extras)
+        update.reset_mock()
+        pkg = Dataset(state='deleted')
         self.api.sync(pkg)
+        self.assertFalse(create.called)
+        self.assertFalse(update.called)
 
     @mock.patch(api.__name__ + '.API._get')
     def test_sync_resources(self, get):
