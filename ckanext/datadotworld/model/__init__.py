@@ -9,3 +9,4 @@ class States:
     uptodate = u'up-to-date'
     failed = u'failed'
     pending = u'pending'
+    deleted = u'deleted'
