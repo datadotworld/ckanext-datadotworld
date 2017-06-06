@@ -1,3 +1,17 @@
+# Copyright 2017 data.world, inc
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # -*- coding: utf-8 -*-
 from setuptools import setup, find_packages  # Always prefer setuptools over distutils
 from codecs import open  # To use a consistent encoding
@@ -21,14 +35,14 @@ setup(
     long_description=long_description,
 
     # The project's main homepage.
-    url='https://github.com/DataShades/ckanext-datadotworld',
+    url='https://github.com/datadotworld/ckanext-datadotworld',
 
     # Author details
     author='''Sergey Motornyuk''',
     author_email='''sergey.motornyuk@linkdigital.com.au''',
 
     # Choose your license
-    license='AGPL',
+    license='ALv2',
 
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
@@ -39,7 +53,7 @@ setup(
         'Development Status :: 3 - Alpha',
 
         # Pick your license as you wish (should match "license" above)
-        'License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)',
+        'License :: OSI Approved :: Apache License, Version 2.0',
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
