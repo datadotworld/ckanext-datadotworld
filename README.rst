@@ -33,7 +33,7 @@ To install ckanext-datadotworld:
 
 	. /usr/lib/ckan/default/bin/activate
 
-2.  If you already have older version of this extension, remove it first::
+2.  If you already have an older version of this extension, remove it first::
 
       pip uninstall -y ckanext-datadotworld
 
