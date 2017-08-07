@@ -170,6 +170,7 @@ class TestAPI(TestCase):
         headers = self.api._default_headers()
         self.assertIn('Authorization', headers)
         self.assertIn('Content-type', headers)
+        self.assertIn('User-Agent', headers)
         self.assertEqual('application/json', headers['Content-type'])
         key = API.auth.format(key=self.creds.key)
         self.assertEqual(key, headers['Authorization'])
