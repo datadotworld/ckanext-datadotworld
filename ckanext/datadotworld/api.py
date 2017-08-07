@@ -121,6 +121,7 @@ class API:
     api_res_delete = api_res_create + '/{file}'
 
     auth = 'Bearer {key}'
+    user_agent_header = 'ckanext-datadotworld'
 
     @classmethod
     def generate_link(cls, owner, package=None):
@@ -149,7 +150,8 @@ class API:
     def _default_headers(self):
         return {
             'Authorization': self.auth.format(key=self.key),
-            'Content-type': 'application/json'
+            'Content-type': 'application/json',
+            'User-Agent': self.user_agent_header
         }
 
     def _get(self, url):
