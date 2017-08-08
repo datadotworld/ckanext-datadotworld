@@ -79,6 +79,14 @@ do the following::
 	pip install -r dev-requirements.txt
 	paster datadotworld init -c /config.ini
 
+-----------------------------------------------
+Releasing a new version of ckanext-datadotworld
+-----------------------------------------------
+
+Update the version number in the ``ckanext-datadotworld/ckanext/datadotworld/__init__.py``
+See `PEP 440 <http://legacy.python.org/dev/peps/pep-0440/#public-version-identifiers>`_
+for how to choose version numbers.
+
 -----------------
 Running the Tests
 -----------------
