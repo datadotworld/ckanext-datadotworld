@@ -115,6 +115,7 @@ class API:
     api_root = 'https://api.data.world/v0'
     api_create = api_root + '/datasets/{owner}'
     api_update = api_create + '/{name}'
+    api_delete = api_create + '/{id}'
     api_res_create = api_update + '/files'
     api_res_sync = api_update + '/sync'
     api_res_update = api_res_create + '/{file}'
@@ -172,6 +173,12 @@ class API:
         headers = self._default_headers()
         return requests.put(url=url, data=json.dumps(data), headers=headers)
 
+    def _delete(self, url, data):
+        """Simple wrapper around DELETE request.
+        """
+        headers = self._default_headers()
+        return requests.delete(url=url, data=json.dumps(data), headers=headers)
+
     def _format_data(self, pkg_dict):
         tags = []
         notes = pkg_dict.get('notes') or ''
@@ -218,6 +225,17 @@ class API:
         else:
             log.warn(
                 '[{0}] Update package: {1}'.format(id, res.content))
+
+        return res
+
+    def _delete_request(self, data, id):
+        url = self.api_delete.format(owner=self.owner, id=id)
+        res = self._delete(url, data)
+        if res.status_code == 200:
+            log.info('[{0}] Successfuly deleted'.format(id))
+        else:
+            log.warn(
+                '[{0}] Delete package: {1}'.format(id, res.content))
 
         return res
 
@@ -280,13 +298,32 @@ class API:
                 extras.id, res.content))
         return data
 
+    def _delete_dataset(self, data, extras):
+        log.warn('[{0}] Try to delete'.format(extras.id))
+        res = self._delete_request(data, extras.id)
+        extras.message = res.content
+        if res.status_code == 200:
+            query = model.Session.query(Extras).filter(Extras.id == extras.id)
+            query.delete()
+            log.warn('[{0}] deleted from datadotworld_extras table'.format(
+                extras.id))
+        else:
+            extras.state = States.failed
+            log.error('[{0}] Delete package error:{1}'.format(
+                extras.id, res.content))
+        return data
+
     def sync(self, pkg_dict):
         entity = model.Package.get(pkg_dict['id'])
         pkg_dict = get_action('package_show')(get_context(), {'id': entity.id})
         data_dict = self._format_data(pkg_dict)
 
         extras = entity.datadotworld_extras
-        action = self._update if extras and extras.id else self._create
+        pkg_state = pkg_dict.get('state')
+        if pkg_state == 'deleted':
+            action = self._delete_dataset
+        else:
+            action = self._update if extras and extras.id else self._create
         if not extras:
             extras = Extras(
                 package=entity, owner=self.owner,
@@ -299,10 +336,7 @@ class API:
             model.Session.rollback()
             log.error('[sync problem] {0}'.format(e))
 
-        if entity.state == 'deleted':
-            extras.state = States.deleted
-        else:
-            action(data_dict, extras)
+        action(data_dict, extras)
         model.Session.commit()
 
     def sync_resources(self, id):
