@@ -114,6 +114,7 @@ class API:
     root = 'https://data.world'
     api_root = 'https://api.data.world/v0'
     api_create = api_root + '/datasets/{owner}'
+    api_create_put = api_create + '/{id}'
     api_update = api_create + '/{name}'
     api_delete = api_create + '/{id}'
     api_res_create = api_update + '/files'
@@ -207,8 +208,8 @@ class API:
         return False
 
     def _create_request(self, data, id):
-        url = self.api_create.format(owner=self.owner)
-        res = self._post(url, data)
+        url = self.api_create_put.format(owner=self.owner, id=id)
+        res = self._put(url, data)
         if res.status_code == 200:
             log.info('[{0}] Successfuly created'.format(id))
         else:
@@ -262,21 +263,7 @@ class API:
                 extras.id = new_id
 
             extras.state = States.uptodate
-        else:
-            self._replace(data, extras)
 
-        return data
-
-    def _replace(self, data, extras):
-        log.warn('[{0}] Try to replace'.format(extras.id))
-        remote_res = self._update_request(data, extras.id)
-        extras.message = remote_res.content
-        if remote_res.status_code == 200:
-            extras.state = States.uptodate
-        else:
-            extras.state = States.failed
-            log.error('[{0}] Replace package: {1}'.format(
-                extras.id, remote_res.content))
         return data
 
     def _update(self, data, extras):
