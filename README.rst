@@ -78,6 +78,7 @@ do the following::
 	python setup.py develop
 	paster datadotworld init -c /config.ini
 
+
 -----------------
 Running the Tests
 -----------------

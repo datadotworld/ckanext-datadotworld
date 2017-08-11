@@ -27,6 +27,7 @@ from ckan.lib.munge import munge_name
 
 from ckanext.datadotworld.model import States
 from ckanext.datadotworld.model.extras import Extras
+from ckanext.datadotworld import __version__
 
 
 log = logging.getLogger(__name__)
@@ -121,6 +122,7 @@ class API:
     api_res_delete = api_res_create + '/{file}'
 
     auth = 'Bearer {key}'
+    user_agent_header = 'ckanext-datadotworld/' + __version__
 
     @classmethod
     def generate_link(cls, owner, package=None):
@@ -149,7 +151,8 @@ class API:
     def _default_headers(self):
         return {
             'Authorization': self.auth.format(key=self.key),
-            'Content-type': 'application/json'
+            'Content-type': 'application/json',
+            'User-Agent': self.user_agent_header
         }
 
     def _get(self, url):
