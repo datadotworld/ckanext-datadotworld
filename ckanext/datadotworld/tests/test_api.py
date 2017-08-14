@@ -307,6 +307,15 @@ class TestAPI(TestCase):
         self.assertEqual('id', extras.id)
         self.assertEqual(States.uptodate, extras.state)
 
+        extras.state = States.pending
+        create.reset_mock()
+        create.return_value = Response(404, {})
+        result = self.api._create(data, extras)
+        create.assert_called_once_with(data, 'id')
+        self.assertEqual(data, result)
+        self.assertEqual('id', extras.id)
+        self.assertEqual(States.failed, extras.state)
+
     @mock.patch(api.__name__ + '.API._is_update_required')
     @mock.patch(api.__name__ + '.API._create_request')
     @mock.patch(api.__name__ + '.API._update_request')
@@ -335,6 +344,26 @@ class TestAPI(TestCase):
         update.assert_called_once_with(data, 'id')
         self.assertEqual(data, result)
         self.assertEqual(States.uptodate, extras.state)
+
+        extras.state = States.pending
+        extras.id = 'id'
+        update.reset_mock()
+        create.reset_mock()
+        update.return_value = Response(404, data)
+        create.return_value = Response(404, data)
+        result = self.api._update(data, extras)
+        create.assert_called_once_with(data, 'id')
+        update.assert_called_once_with(data, 'id')
+        self.assertEqual(data, result)
+        self.assertEqual(States.failed, extras.state)
+
+        extras.state = States.pending
+        update.reset_mock()
+        update.return_value = Response(400, {})
+        result = self.api._update(data, extras)
+        update.assert_called_once_with(data, 'id')
+        self.assertEqual(data, result)
+        self.assertEqual(States.failed, extras.state)
 
     @mock.patch(api.__name__ + '.API._delete_request')
     def test_delete_dataset(self, delete):

@@ -263,6 +263,10 @@ class API:
                 extras.id = new_id
 
             extras.state = States.uptodate
+        else:
+            extras.state = States.failed
+            log.error('[{0}] Create package failed: {1}'.format(
+                extras.id, res.content))
 
         return data
 
