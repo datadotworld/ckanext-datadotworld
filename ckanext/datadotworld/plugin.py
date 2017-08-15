@@ -23,8 +23,15 @@ import ckanext.datadotworld.helpers as dh
 from ckan.lib.celery_app import celery
 import os
 from pylons import config
+from ckan.common import _
+import re
+import ckan.lib.navl.dictization_functions as df
+from ckan.lib.navl.validators import not_missing, not_empty
 
 log = logging.getLogger(__name__)
+MIN_TAG_LENGTH = 2
+MAX_TAG_LENGTH = 25
+Invalid = df.Invalid
 
 
 def compat_enqueue(name, fn, args=None):
@@ -41,11 +48,32 @@ def compat_enqueue(name, fn, args=None):
         celery.send_task(name, args=args)
 
 
-class DatadotworldPlugin(plugins.SingletonPlugin):
+def datadotworld_tag_name_validator(value, context):
+    tagname_match = re.compile('^[a-z0-9]+( [a-z0-9]+)*$', re.UNICODE)
+    if not tagname_match.match(value):
+        raise Invalid(_('Tag "%s" must only contain lower-case letters, '
+                        'numbers or spaces : ') % (value))
+    return value
+
+
+def datadotworld_tag_length_validator(value, context):
+    if len(value) < MIN_TAG_LENGTH:
+        raise Invalid(
+            _('Tag "%s" length is less than minimum %s') % (value, MIN_TAG_LENGTH)
+        )
+    if len(value) > MAX_TAG_LENGTH:
+        raise Invalid(
+            _('Tag "%s" length is more than maximum %i') % (value, MAX_TAG_LENGTH)
+        )
+    return value
+
+
+class DatadotworldPlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
     plugins.implements(plugins.IConfigurer)
     plugins.implements(plugins.IRoutes, inherit=True)
     plugins.implements(plugins.IPackageController, inherit=True)
     plugins.implements(plugins.ITemplateHelpers)
+    plugins.implements(plugins.IDatasetForm)
 
     # ITemplateHelpers
 
@@ -104,3 +132,36 @@ class DatadotworldPlugin(plugins.SingletonPlugin):
             tasks.syncronize,
             args=[data_dict['id'], ckan_ini_filepath])
         return data_dict
+
+    # IDatasetForm
+
+    def is_fallback(self):
+        # Return True to register this plugin as the default handler for
+        # package types not handled by any other IDatasetForm plugin.
+        return True
+
+    def package_types(self):
+        # This plugin doesn't handle any special package types, it just
+        # registers itself as the default (above).
+        return []
+
+    def _modify_package_schema(self, schema):
+        schema_tags = schema['tags']
+        schema_tags['name'] = [
+            not_missing,
+            not_empty,
+            unicode,
+            datadotworld_tag_length_validator,
+            datadotworld_tag_name_validator,
+        ]
+        return schema
+
+    def create_package_schema(self):
+        schema = super(DatadotworldPlugin, self).create_package_schema()
+        schema = self._modify_package_schema(schema)
+        return schema
+
+    def update_package_schema(self):
+        schema = super(DatadotworldPlugin, self).update_package_schema()
+        schema = self._modify_package_schema(schema)
+        return schema
