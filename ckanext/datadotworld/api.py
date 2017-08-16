@@ -60,10 +60,8 @@ def datadotworld_tags_name_normalize(tags_list):
     tags_list = [tag['name'].lower().replace('-', ' ').replace('_', ' ')
                  for tag in tags_list if (len(tag['name']) > 1 and
                                           len(tag['name']) <= 25)]
-    tagname_match = re.compile('^[a-z0-9]+( [a-z0-9]+)*$', re.UNICODE)
-    for tag in tags_list:
-        if not tagname_match.match(tag):
-            tags_list.remove(tag)
+    tagname_match = re.compile('^[a-z0-9]+( [a-z0-9]+)*$')
+    tags_list = [tag for tag in tags_list if tagname_match.match(tag)]
     tags_list = list(set(tags_list))
     return tags_list
 
