@@ -24,6 +24,7 @@ from ckan.lib.celery_app import celery
 import os
 from pylons import config
 
+
 log = logging.getLogger(__name__)
 
 

@@ -28,6 +28,7 @@ from ckan.lib.munge import munge_name
 from ckanext.datadotworld.model import States
 from ckanext.datadotworld.model.extras import Extras
 from ckanext.datadotworld import __version__
+import re
 
 
 log = logging.getLogger(__name__)
@@ -53,6 +54,16 @@ def dataworld_name(title):
     return munge_name(
         '-'.join(filter(None, cleaned_title.split('-')))
     )
+
+
+def datadotworld_tags_name_normalize(tags_list):
+    tags_list = [tag['name'].lower().replace('-', ' ').replace('_', ' ')
+                 for tag in tags_list if (len(tag['name']) > 1 and
+                                          len(tag['name']) <= 25)]
+    tagname_match = re.compile('^[a-z0-9]+( [a-z0-9]+)*$')
+    tags_list = [tag for tag in tags_list if tagname_match.match(tag)]
+    tags_list = list(set(tags_list))
+    return tags_list
 
 
 def _get_creds_if_must_sync(pkg_dict):
@@ -182,11 +193,8 @@ class API:
         return requests.delete(url=url, data=json.dumps(data), headers=headers)
 
     def _format_data(self, pkg_dict):
-        tags = []
         notes = pkg_dict.get('notes') or ''
-
-        for tag in pkg_dict.get('tags', []):
-            tags.append(tag['name'])
+        tags = datadotworld_tags_name_normalize(pkg_dict.get('tags', []))
         data = dict(
             title=pkg_dict['name'],
             description=pkg_dict['title'],

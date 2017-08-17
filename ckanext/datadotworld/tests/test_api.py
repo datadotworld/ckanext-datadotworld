@@ -67,6 +67,23 @@ class TestAPI(TestCase):
         self.assertEqual('n-a-m-e', api.dataworld_name('--n--a--m--e--'))
         self.assertEqual('n-a-m-e', api.dataworld_name('- _-n-_  __--a-M-e-'))
 
+    def test_datadotworld_tags_name_normalize(self):
+        tags_list = [
+            {'name': u'invalid tag'},
+            {'name': u'ta'},
+            {'name': u'tag1'},
+            {'name': u'tags'},
+            {'name': u'valid tag'},
+            {'name': u'\u0442\u0435\u0441\u0442'}]
+        self.assertEqual(5, len(api.datadotworld_tags_name_normalize(tags_list)))
+        tags_list = [
+            {'name': u'invalid-tag'},
+            {'name': u'taasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasd'},
+            {'name': u'tag1'},
+            {'name': u'TAGS'},
+            {'name': u'invalid tag'}]
+        self.assertEqual(3, len(api.datadotworld_tags_name_normalize(tags_list)))
+
     def test_get_creds_if_must_sync(self):
         pkg = Dataset()
         creds = api._get_creds_if_must_sync(pkg)
