@@ -85,7 +85,7 @@ def _prepare_resource_url(res):
     """
     link = res['url'] or ''
     name = res['name'] or ''
-    if not link or not name:
+    if link is None or name is None:
         log.info('Undefined url or name: {0}'.format(res))
     link_name, link_ext = os.path.splitext(os.path.basename(link))
     file_name, file_ext = os.path.splitext(os.path.basename(name))
@@ -295,6 +295,12 @@ class API:
                 id=data_dict['title'])
             model.Session.add(extras)
             extras.state = States.pending
+
+        # TODO: remove next line or set level to debug
+        log.warn('Performing {0} with {1}'.format(
+            getattr(action, '__name__', action),
+            pkg_dict['id']))
+
         try:
             model.Session.commit()
         except Exception as e:
