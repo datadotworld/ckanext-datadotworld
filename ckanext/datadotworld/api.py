@@ -83,9 +83,10 @@ def notify(pkg_id):
 def _prepare_resource_url(res):
     """Convert list of resources to files_list for data.world.
     """
-    link = res['url']
-    name = res['name']
-
+    link = res['url'] or ''
+    name = res['name'] or ''
+    if not link or not name:
+        log.info('Undefined url or name: {0}'.format(res))
     link_name, link_ext = os.path.splitext(os.path.basename(link))
     file_name, file_ext = os.path.splitext(os.path.basename(name))
 
