@@ -73,7 +73,6 @@ class DataDotWorldController(base.BaseController):
                 }
         return base.render('datadotworld/list_sync.html', extra_vars=extra)
 
-
     def edit(self, id):
         def validate(data):
             error_dict = {}
@@ -139,12 +138,14 @@ class DataDotWorldController(base.BaseController):
                 extra['error_summary'] = e.error_summary
             else:
 
-                model.Session.query(Extras).join(
+                query = model.Session.query(Extras).join(
                     model.Package
                 ).join(
                     model.Group, model.Package.owner_org == model.Group.id
-                ).filter(model.Group.id == c.group.id).update(
-                    {'state': 'pending'})
+                ).filter(model.Group.id == c.group.id)
+                for item in query:
+                    item.state = 'pending'
+
                 model.Session.commit()
                 h.flash_success('Saved')
                 if tk.asbool(c.credentials.integration):
