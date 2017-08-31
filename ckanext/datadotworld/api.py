@@ -303,7 +303,7 @@ class API:
         log.warn('[{0}] Try to delete'.format(extras.id))
         res = self._delete_request(data, extras.id)
         extras.message = res.content
-        if res.status_code == 200:
+        if res.status_code in (200, 404):
             query = model.Session.query(Extras).filter(Extras.id == extras.id)
             query.delete()
             log.warn('[{0}] deleted from datadotworld_extras table'.format(
