@@ -66,6 +66,22 @@ A similar solution enables syncronization with remote (i.e. not uploaded) resour
 
 	* 8 * * * paster --plugin=ckanext-datadotworld datadotworld sync_resources -c /config.ini
 
+
+-----------------
+Template snippets
+-----------------
+
+In order to add data.world banner on dataset page(currently it seats at the top of `package_resources` block)
+you may add next snippet to template with `datadotworld_extras` variable that contains object(model) with
+currently viewed package's datadotworld extras and `org_id` - owner organization of viewed packaged::
+
+  {% snippet 'snippets/datadotworld/banner.html', org_id=pkg.owner_org, datadotworld_extras=c.pkg.datadotworld_extras %}
+
+Sidebar label may be added by placing next snippet to your template(`org_id` is ID of viewed organization)::
+
+    {% snippet 'snippets/datadotworld/label.html', org_id=organization.id %}
+
+
 ------------------------
 Development Installation
 ------------------------
