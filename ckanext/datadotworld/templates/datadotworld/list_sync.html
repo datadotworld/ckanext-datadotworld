@@ -28,6 +28,12 @@
           This page contains information about datasets with '{{displayed_state}}' replication status between the current CKAN instance and the
           <a href="http://data.world" target="_blank">data.world</a> portal.
         {% endtrans %}
+          {% if displayed_state == 'failed' %}
+            <br/>
+            <strong>
+               {{ _('If you have an authorization error when trying to remove a dataset, please make sure you have added an Admin token') }}
+            </strong>
+          {% endif %}
       </p>
     </div>
   </section>
