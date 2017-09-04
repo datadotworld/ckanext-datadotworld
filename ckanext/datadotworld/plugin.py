@@ -83,6 +83,7 @@ class DatadotworldPlugin(plugins.SingletonPlugin):
     # IPackageController
 
     def after_create(self, context, data_dict):
+        log.info('Called after_create for {0}'.format(data_dict['id']))
         ckan_ini_filepath = os.path.abspath(config['__file__'])
         compat_enqueue(
             'datadotworld.syncronize',
@@ -91,6 +92,7 @@ class DatadotworldPlugin(plugins.SingletonPlugin):
         return data_dict
 
     def after_update(self, context, data_dict):
+        log.info('Called after_update for {0}'.format(data_dict['id']))
         ckan_ini_filepath = os.path.abspath(config['__file__'])
         compat_enqueue(
             'datadotworld.syncronize',
