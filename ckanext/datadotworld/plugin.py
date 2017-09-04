@@ -107,3 +107,19 @@ class DatadotworldPlugin(plugins.SingletonPlugin):
             tasks.syncronize,
             args=[data_dict['id'], ckan_ini_filepath])
         return data_dict
+
+    def after_delete(self, context, data_dict):
+        ckan_ini_filepath = os.path.abspath(config['__file__'])
+        compat_enqueue(
+            'datadotworld.syncronize',
+            tasks.syncronize,
+            args=[data_dict['id'], ckan_ini_filepath])
+        return data_dict
+
+    def after_delete(self, context, data_dict):
+        ckan_ini_filepath = os.path.abspath(config['__file__'])
+        compat_enqueue(
+            'datadotworld.syncronize',
+            tasks.syncronize,
+            args=[data_dict['id'], ckan_ini_filepath])
+        return data_dict
