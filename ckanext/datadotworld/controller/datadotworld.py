@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import json
+import logging
 import ckan.lib.base as base
 import ckan.model as model
 import ckan.logic as logic
@@ -28,12 +29,16 @@ from ckan.lib.celery_app import celery
 from sqlalchemy import func
 import ckanext.datadotworld.helpers as dh
 
+logger = logging.getLogger(__name__)
+
+
 
 def syncronize_org(id):
     ckan_ini_filepath = os.path.abspath(config['__file__'])
     packages = model.Session.query(model.Package).filter_by(
         owner_org=id
     )
+    logger.info('Starting update task for [{0}] datasets'.format(packages.count()))
     for pkg in packages:
         celery.send_task(
             'datadotworld.syncronize',
@@ -139,12 +144,24 @@ class DataDotWorldController(base.BaseController):
                 extra['error_summary'] = e.error_summary
             else:
 
-                model.Session.query(Extras).join(
+                org_packages = model.Session.query(Extras).join(
                     model.Package
                 ).join(
                     model.Group, model.Package.owner_org == model.Group.id
-                ).filter(model.Group.id == c.group.id).update(
+                ).filter(model.Group.id == c.group.id)
+
+                # TODO: remove next line. It is required only for debugging
+                logger.info('Saving credentials for {0}. Org id for search: {1}, dataset count: {2}'.format(
+                    id, c.group.id,
+                    org_packages.count(),
+                ))
+
+                result = org_packages.update(
                     {'state': 'pending'})
+
+                # TODO: remove next line
+                logger.info('Set pending state for [{0}] datasets'.format(result))
+
                 model.Session.commit()
                 h.flash_success('Saved')
                 if tk.asbool(c.credentials.integration):

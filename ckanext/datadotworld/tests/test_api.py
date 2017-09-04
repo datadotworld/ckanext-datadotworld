@@ -67,6 +67,23 @@ class TestAPI(TestCase):
         self.assertEqual('n-a-m-e', api.dataworld_name('--n--a--m--e--'))
         self.assertEqual('n-a-m-e', api.dataworld_name('- _-n-_  __--a-M-e-'))
 
+    def test_datadotworld_tags_name_normalize(self):
+        tags_list = [
+            {'name': u'invalid tag'},
+            {'name': u'ta'},
+            {'name': u'tag1'},
+            {'name': u'tags'},
+            {'name': u'valid tag'},
+            {'name': u'\u0442\u0435\u0441\u0442'}]
+        self.assertEqual(5, len(api.datadotworld_tags_name_normalize(tags_list)))
+        tags_list = [
+            {'name': u'invalid-tag'},
+            {'name': u'taasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasd'},
+            {'name': u'tag1'},
+            {'name': u'TAGS'},
+            {'name': u'invalid tag'}]
+        self.assertEqual(3, len(api.datadotworld_tags_name_normalize(tags_list)))
+
     def test_get_creds_if_must_sync(self):
         pkg = Dataset()
         creds = api._get_creds_if_must_sync(pkg)
@@ -112,6 +129,12 @@ class TestAPI(TestCase):
         expect = {
             'name': 'c.csv',
             'description': 'xxx',
+            'source': {'url': res['url']}}
+        self.assertEqual(expect, api._prepare_resource_url(res))
+
+        res = {'url': 'a/b/c.csv', 'name': None}
+        expect = {
+            'name': 'c.csv',
             'source': {'url': res['url']}}
         self.assertEqual(expect, api._prepare_resource_url(res))
 
@@ -221,10 +244,10 @@ class TestAPI(TestCase):
         self.assertFalse(self.api._is_dict_changed(new, new))
         self.assertFalse(self.api._is_dict_changed(old, old))
 
-    @mock.patch(api.__name__ + '.API._post')
+    @mock.patch(api.__name__ + '.API._put')
     def test_create_request(self, method):
         data = {'a': 1}
-        url = self.api.api_create.format(owner=self.api.owner)
+        url = self.api.api_create_put.format(owner=self.api.owner, id='id')
 
         method.return_value = Response()
         self.api._create_request(data, 'id')
@@ -286,8 +309,7 @@ class TestAPI(TestCase):
         method.assert_called_once_with(url, data)
 
     @mock.patch(api.__name__ + '.API._create_request')
-    @mock.patch(api.__name__ + '.API._replace')
-    def test_create(self, replace, create):
+    def test_create(self, create):
         data = {'uri': 'xxx'}
         extras = Extras(id='id')
 
@@ -313,28 +335,8 @@ class TestAPI(TestCase):
         create.return_value = Response(404, {})
         result = self.api._create(data, extras)
         create.assert_called_once_with(data, 'id')
-        replace.assert_called_once_with(data, extras)
         self.assertEqual(data, result)
         self.assertEqual('id', extras.id)
-        self.assertEqual(States.pending, extras.state)
-
-    @mock.patch(api.__name__ + '.API._update_request')
-    def test_replace(self, update):
-        data = {}
-        extras = Extras(id='id')
-
-        update.return_value = Response(200)
-        result = self.api._replace(data, extras)
-        update.assert_called_once_with(data, 'id')
-        self.assertEqual(data, result)
-        self.assertEqual(States.uptodate, extras.state)
-
-        extras.state = States.pending
-        update.reset_mock()
-        update.return_value = Response(404, {})
-        result = self.api._create(data, extras)
-        update.assert_called_once_with(data, 'id')
-        self.assertEqual(data, result)
         self.assertEqual(States.failed, extras.state)
 
     @mock.patch(api.__name__ + '.API._is_update_required')
@@ -374,9 +376,7 @@ class TestAPI(TestCase):
         create.return_value = Response(404, data)
         result = self.api._update(data, extras)
         create.assert_called_once_with(data, 'id')
-        update.assert_has_calls(
-            [mock.call(data, 'id'), mock.call(data, 'id')])
-
+        update.assert_called_once_with(data, 'id')
         self.assertEqual(data, result)
         self.assertEqual(States.failed, extras.state)
 

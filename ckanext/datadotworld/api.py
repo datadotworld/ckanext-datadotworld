@@ -28,6 +28,7 @@ from ckan.lib.munge import munge_name
 from ckanext.datadotworld.model import States
 from ckanext.datadotworld.model.extras import Extras
 from ckanext.datadotworld import __version__
+import re
 
 
 log = logging.getLogger(__name__)
@@ -53,6 +54,16 @@ def dataworld_name(title):
     return munge_name(
         '-'.join(filter(None, cleaned_title.split('-')))
     )
+
+
+def datadotworld_tags_name_normalize(tags_list):
+    tags_list = [tag['name'].lower().replace('-', ' ').replace('_', ' ')
+                 for tag in tags_list if (len(tag['name']) > 1 and
+                                          len(tag['name']) <= 25)]
+    tagname_match = re.compile('^[a-z0-9]+( [a-z0-9]+)*$')
+    tags_list = [tag for tag in tags_list if tagname_match.match(tag)]
+    tags_list = list(set(tags_list))
+    return tags_list
 
 
 def _get_creds_if_must_sync(pkg_dict):
@@ -83,9 +94,10 @@ def notify(pkg_id):
 def _prepare_resource_url(res):
     """Convert list of resources to files_list for data.world.
     """
-    link = res['url']
-    name = res['name']
-
+    link = res['url'] or ''
+    name = res['name'] or ''
+    if link is None or name is None:
+        log.info('Undefined url or name: {0}'.format(res))
     link_name, link_ext = os.path.splitext(os.path.basename(link))
     file_name, file_ext = os.path.splitext(os.path.basename(name))
 
@@ -115,6 +127,7 @@ class API:
     root = 'https://data.world'
     api_root = 'https://api.data.world/v0'
     api_create = api_root + '/datasets/{owner}'
+    api_create_put = api_create + '/{id}'
     api_update = api_create + '/{name}'
     api_delete = api_create + '/{id}'
     api_res_create = api_update + '/files'
@@ -181,11 +194,8 @@ class API:
         return requests.delete(url=url, data=json.dumps(data), headers=headers)
 
     def _format_data(self, pkg_dict):
-        tags = []
         notes = pkg_dict.get('notes') or ''
-
-        for tag in pkg_dict.get('tags', []):
-            tags.append(tag['name'])
+        tags = datadotworld_tags_name_normalize(pkg_dict.get('tags', []))
         data = dict(
             title=pkg_dict['name'],
             description=pkg_dict['title'],
@@ -208,8 +218,8 @@ class API:
         return False
 
     def _create_request(self, data, id):
-        url = self.api_create.format(owner=self.owner)
-        res = self._post(url, data)
+        url = self.api_create_put.format(owner=self.owner, id=id)
+        res = self._put(url, data)
         if res.status_code == 200:
             log.info('[{0}] Successfuly created'.format(id))
         else:
@@ -264,20 +274,10 @@ class API:
 
             extras.state = States.uptodate
         else:
-            self._replace(data, extras)
-
-        return data
-
-    def _replace(self, data, extras):
-        log.warn('[{0}] Try to replace'.format(extras.id))
-        remote_res = self._update_request(data, extras.id)
-        extras.message = remote_res.content
-        if remote_res.status_code == 200:
-            extras.state = States.uptodate
-        else:
             extras.state = States.failed
-            log.error('[{0}] Replace package: {1}'.format(
-                extras.id, remote_res.content))
+            log.error('[{0}] Create package failed: {1}'.format(
+                extras.id, res.content))
+
         return data
 
     def _update(self, data, extras):
@@ -331,6 +331,12 @@ class API:
                 id=data_dict['title'])
             model.Session.add(extras)
             extras.state = States.pending
+
+        # TODO: remove next line or set level to debug
+        log.warn('Performing {0} with {1}'.format(
+            getattr(action, '__name__', action),
+            pkg_dict['id']))
+
         try:
             model.Session.commit()
         except Exception as e:
