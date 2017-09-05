@@ -13,5 +13,5 @@
 # limitations under the License.
 
 include README.rst
-recursive-include ckanext/datadotworld *.html *.json *.js *.less *.css *.mo
+recursive-include ckanext/datadotworld *.html *.json *.js *.less *.css *.mo *.config
 recursive-include datadotworld_repository *.cfg
