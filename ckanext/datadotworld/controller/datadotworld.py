@@ -85,7 +85,6 @@ class DataDotWorldController(base.BaseController):
                 }
         return base.render('datadotworld/list_sync.html', extra_vars=extra)
 
-
     def edit(self, id):
         def validate(data):
             error_dict = {}
@@ -151,23 +150,13 @@ class DataDotWorldController(base.BaseController):
                 extra['error_summary'] = e.error_summary
             else:
 
-                org_packages = model.Session.query(Extras).join(
+                query = model.Session.query(Extras).join(
                     model.Package
                 ).join(
                     model.Group, model.Package.owner_org == model.Group.id
                 ).filter(model.Group.id == c.group.id)
-
-                # TODO: remove next line. It is required only for debugging
-                logger.info('Saving credentials for {0}. Org id for search: {1}, dataset count: {2}'.format(
-                    id, c.group.id,
-                    org_packages.count(),
-                ))
-
-                result = org_packages.update(
-                    {'state': 'pending'})
-
-                # TODO: remove next line
-                logger.info('Set pending state for [{0}] datasets'.format(result))
+                for item in query:
+                    item.state = 'pending'
 
                 model.Session.commit()
                 h.flash_success('Saved')
