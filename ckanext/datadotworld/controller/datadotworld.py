@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import json
+import logging
 import ckan.lib.base as base
 import ckan.model as model
 import ckan.logic as logic
@@ -28,12 +29,16 @@ from ckan.lib.celery_app import celery
 from sqlalchemy import func
 import ckanext.datadotworld.helpers as dh
 
+logger = logging.getLogger(__name__)
+
+
 
 def syncronize_org(id):
     ckan_ini_filepath = os.path.abspath(config['__file__'])
     packages = model.Session.query(model.Package).filter_by(
         owner_org=id
     )
+    logger.info('Starting update task for [{0}] datasets'.format(packages.count()))
     for pkg in packages:
         celery.send_task(
             'datadotworld.syncronize',
@@ -41,28 +46,35 @@ def syncronize_org(id):
 
 
 class DataDotWorldController(base.BaseController):
-    def list_sync(self, state):
+    def list_sync(self, state, org_id=None):
         orgs = dh.admin_in_orgs(c.user)
-        if not orgs:
+        org = model.Group.get(org_id)
+        if not orgs or (org and org not in orgs):
             base.abort(401, _('User %r not authorized to see this page') % (
                 c.user))
         extra = {
             'displayed_state': state
         }
-        ids = [org.id for org in orgs]
+        ids = [o.id for o in orgs]
         query = model.Session.query(
             model.Package.name,
             model.Package.title,
             Extras.message
         ).join(
             model.Group, model.Package.owner_org == model.Group.id
-        ).filter(
-            model.Group.id.in_(ids)
         ).join(
             Extras
         ).filter(
             Extras.state == state
         )
+        if org:
+            query = query.filter(
+                model.Group.id == org.id
+            )
+        else:
+            query = query.filter(
+                model.Group.id.in_(ids)
+            )
         extra['datasets'] = query.all()
         for pkg in extra['datasets']:
             try:

@@ -28,6 +28,7 @@ from ckan.lib.munge import munge_name
 from ckanext.datadotworld.model import States
 from ckanext.datadotworld.model.extras import Extras
 from ckanext.datadotworld import __version__
+import re
 
 
 log = logging.getLogger(__name__)
@@ -53,6 +54,16 @@ def dataworld_name(title):
     return munge_name(
         '-'.join(filter(None, cleaned_title.split('-')))
     )
+
+
+def datadotworld_tags_name_normalize(tags_list):
+    tags_list = [tag['name'].lower().replace('-', ' ').replace('_', ' ')
+                 for tag in tags_list if (len(tag['name']) > 1 and
+                                          len(tag['name']) <= 25)]
+    tagname_match = re.compile('^[a-z0-9]+( [a-z0-9]+)*$')
+    tags_list = [tag for tag in tags_list if tagname_match.match(tag)]
+    tags_list = list(set(tags_list))
+    return tags_list
 
 
 def _get_creds_if_must_sync(pkg_dict):
@@ -83,9 +94,10 @@ def notify(pkg_id):
 def _prepare_resource_url(res):
     """Convert list of resources to files_list for data.world.
     """
-    link = res['url']
-    name = res['name']
-
+    link = res['url'] or ''
+    name = res['name'] or ''
+    if link is None or name is None:
+        log.info('Undefined url or name: {0}'.format(res))
     link_name, link_ext = os.path.splitext(os.path.basename(link))
     file_name, file_ext = os.path.splitext(os.path.basename(name))
 
@@ -115,7 +127,9 @@ class API:
     root = 'https://data.world'
     api_root = 'https://api.data.world/v0'
     api_create = api_root + '/datasets/{owner}'
+    api_create_put = api_create + '/{id}'
     api_update = api_create + '/{name}'
+    api_delete = api_create + '/{id}'
     api_res_create = api_update + '/files'
     api_res_sync = api_update + '/sync'
     api_res_update = api_res_create + '/{file}'
@@ -173,12 +187,15 @@ class API:
         headers = self._default_headers()
         return requests.put(url=url, data=json.dumps(data), headers=headers)
 
-    def _format_data(self, pkg_dict):
-        tags = []
-        notes = pkg_dict.get('notes') or ''
+    def _delete(self, url, data):
+        """Simple wrapper around DELETE request.
+        """
+        headers = self._default_headers()
+        return requests.delete(url=url, data=json.dumps(data), headers=headers)
 
-        for tag in pkg_dict.get('tags', []):
-            tags.append(tag['name'])
+    def _format_data(self, pkg_dict):
+        notes = pkg_dict.get('notes') or ''
+        tags = datadotworld_tags_name_normalize(pkg_dict.get('tags', []))
         data = dict(
             title=pkg_dict['name'],
             description=pkg_dict['title'],
@@ -201,8 +218,8 @@ class API:
         return False
 
     def _create_request(self, data, id):
-        url = self.api_create.format(owner=self.owner)
-        res = self._post(url, data)
+        url = self.api_create_put.format(owner=self.owner, id=id)
+        res = self._put(url, data)
         if res.status_code == 200:
             log.info('[{0}] Successfuly created'.format(id))
         else:
@@ -219,6 +236,17 @@ class API:
         else:
             log.warn(
                 '[{0}] Update package: {1}'.format(id, res.content))
+
+        return res
+
+    def _delete_request(self, data, id):
+        url = self.api_delete.format(owner=self.owner, id=id)
+        res = self._delete(url, data)
+        if res.status_code == 200:
+            log.info('[{0}] Successfuly deleted'.format(id))
+        else:
+            log.warn(
+                '[{0}] Delete package: {1}'.format(id, res.content))
 
         return res
 
@@ -246,20 +274,10 @@ class API:
 
             extras.state = States.uptodate
         else:
-            self._replace(data, extras)
-
-        return data
-
-    def _replace(self, data, extras):
-        log.warn('[{0}] Try to replace'.format(extras.id))
-        remote_res = self._update_request(data, extras.id)
-        extras.message = remote_res.content
-        if remote_res.status_code == 200:
-            extras.state = States.uptodate
-        else:
             extras.state = States.failed
-            log.error('[{0}] Replace package: {1}'.format(
-                extras.id, remote_res.content))
+            log.error('[{0}] Create package failed: {1}'.format(
+                extras.id, res.content))
+
         return data
 
     def _update(self, data, extras):
@@ -281,29 +299,51 @@ class API:
                 extras.id, res.content))
         return data
 
+    def _delete_dataset(self, data, extras):
+        log.warn('[{0}] Try to delete'.format(extras.id))
+        res = self._delete_request(data, extras.id)
+        extras.message = res.content
+        if res.status_code in (200, 404):
+            query = model.Session.query(Extras).filter(Extras.id == extras.id)
+            query.delete()
+            log.warn('[{0}] deleted from datadotworld_extras table'.format(
+                extras.id))
+        else:
+            extras.state = States.failed
+            log.error('[{0}] Delete package error:{1}'.format(
+                extras.id, res.content))
+        return data
+
     def sync(self, pkg_dict):
         entity = model.Package.get(pkg_dict['id'])
         pkg_dict = get_action('package_show')(get_context(), {'id': entity.id})
         data_dict = self._format_data(pkg_dict)
 
         extras = entity.datadotworld_extras
-        action = self._update if extras and extras.id else self._create
+        pkg_state = pkg_dict.get('state')
+        if pkg_state == 'deleted':
+            action = self._delete_dataset
+        else:
+            action = self._update if extras and extras.id else self._create
         if not extras:
             extras = Extras(
                 package=entity, owner=self.owner,
                 id=data_dict['title'])
             model.Session.add(extras)
             extras.state = States.pending
+
+        # TODO: remove next line or set level to debug
+        log.warn('Performing {0} with {1}'.format(
+            getattr(action, '__name__', action),
+            pkg_dict['id']))
+
         try:
             model.Session.commit()
         except Exception as e:
             model.Session.rollback()
             log.error('[sync problem] {0}'.format(e))
 
-        if entity.state == 'deleted':
-            extras.state = States.deleted
-        else:
-            action(data_dict, extras)
+        action(data_dict, extras)
         model.Session.commit()
 
     def sync_resources(self, id):

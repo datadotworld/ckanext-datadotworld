@@ -24,7 +24,9 @@ from ckan.lib.celery_app import celery
 import os
 from pylons import config
 
+
 log = logging.getLogger(__name__)
+
 
 def compat_enqueue(name, fn, args=None):
     u'''
@@ -38,6 +40,7 @@ def compat_enqueue(name, fn, args=None):
         # Fallback to Celery
         from ckan.lib.celery_app import celery
         celery.send_task(name, args=args)
+
 
 class DatadotworldPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IConfigurer)
@@ -74,12 +77,19 @@ class DatadotworldPlugin(plugins.SingletonPlugin):
             '/data.world/{state:failed|pending|up-to-date|deleted}',
             controller='ckanext.datadotworld.controller:DataDotWorldController',
             action='list_sync')
+        map.connect(
+            'list_dataworld_sync_for_org',
+            '/data.world/{org_id}/{state:failed|pending|up-to-date|deleted}',
+            controller='ckanext.datadotworld.controller:DataDotWorldController',
+            action='list_sync')
+
 
         return map
 
     # IPackageController
 
     def after_create(self, context, data_dict):
+        log.info('Called after_create for {0}'.format(data_dict['id']))
         ckan_ini_filepath = os.path.abspath(config['__file__'])
         compat_enqueue(
             'datadotworld.syncronize',
@@ -88,6 +98,15 @@ class DatadotworldPlugin(plugins.SingletonPlugin):
         return data_dict
 
     def after_update(self, context, data_dict):
+        log.info('Called after_update for {0}'.format(data_dict['id']))
+        ckan_ini_filepath = os.path.abspath(config['__file__'])
+        compat_enqueue(
+            'datadotworld.syncronize',
+            tasks.syncronize,
+            args=[data_dict['id'], ckan_ini_filepath])
+        return data_dict
+
+    def after_delete(self, context, data_dict):
         ckan_ini_filepath = os.path.abspath(config['__file__'])
         compat_enqueue(
             'datadotworld.syncronize',
