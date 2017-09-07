@@ -19,7 +19,7 @@ it using::
 
 instead of::
 
-	paster celeryd run -c /config.ini
+	paster --plugin=ckan celeryd run -c /config.ini
 
 Details at http://docs.ckan.org/en/latest/maintaining/background-tasks.html
 
@@ -46,12 +46,12 @@ To install ckanext-datadotworld:
 
 4. Create DB tables::
 
-	paster datadotworld init -c /config.ini
-	paster datadotworld upgrade -c /config.ini
+	paster --plugin=ckanext-datadotworld datadotworld init -c /config.ini
+	paster --plugin=ckanext-datadotworld datadotworld upgrade -c /config.ini
 
 5. Start celery daemon either with suprevisor or using paster::
 
-	paster celeryd run -c /config.ini
+	paster --plugin=ckan celeryd run -c /config.ini
 
 
 ---------------
