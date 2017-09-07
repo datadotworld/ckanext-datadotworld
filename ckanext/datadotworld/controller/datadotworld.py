@@ -46,28 +46,35 @@ def syncronize_org(id):
 
 
 class DataDotWorldController(base.BaseController):
-    def list_sync(self, state):
+    def list_sync(self, state, org_id=None):
         orgs = dh.admin_in_orgs(c.user)
-        if not orgs:
+        org = model.Group.get(org_id)
+        if not orgs or (org and org not in orgs):
             base.abort(401, _('User %r not authorized to see this page') % (
                 c.user))
         extra = {
             'displayed_state': state
         }
-        ids = [org.id for org in orgs]
+        ids = [o.id for o in orgs]
         query = model.Session.query(
             model.Package.name,
             model.Package.title,
             Extras.message
         ).join(
             model.Group, model.Package.owner_org == model.Group.id
-        ).filter(
-            model.Group.id.in_(ids)
         ).join(
             Extras
         ).filter(
             Extras.state == state
         )
+        if org:
+            query = query.filter(
+                model.Group.id == org.id
+            )
+        else:
+            query = query.filter(
+                model.Group.id.in_(ids)
+            )
         extra['datasets'] = query.all()
         for pkg in extra['datasets']:
             try:
