@@ -77,6 +77,12 @@ class DatadotworldPlugin(plugins.SingletonPlugin):
             '/data.world/{state:failed|pending|up-to-date|deleted}',
             controller='ckanext.datadotworld.controller:DataDotWorldController',
             action='list_sync')
+        map.connect(
+            'list_dataworld_sync_for_org',
+            '/data.world/{org_id}/{state:failed|pending|up-to-date|deleted}',
+            controller='ckanext.datadotworld.controller:DataDotWorldController',
+            action='list_sync')
+
 
         return map
 
