@@ -32,13 +32,11 @@ import ckanext.datadotworld.helpers as dh
 logger = logging.getLogger(__name__)
 
 
-
 def syncronize_org(id):
     ckan_ini_filepath = os.path.abspath(config['__file__'])
     packages = model.Session.query(model.Package).filter_by(
         owner_org=id
     )
-    logger.info('Starting update task for [{0}] datasets'.format(packages.count()))
     for pkg in packages:
         celery.send_task(
             'datadotworld.syncronize',
