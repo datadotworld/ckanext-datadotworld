@@ -1,0 +1,10 @@
+{% set creds = h.datadotworld_creds(org_id) %}
+{% if creds and creds.show_links %}
+  <a href="{{h.datadotworld_link(creds.owner)}}" target="_blank">
+
+    <span class="label label-inversed label-data-world">
+      <span class="part-linked">data linked</span>
+      <span class="part-label">data.world</span>
+    </span>
+  </a>
+{% endif %}
