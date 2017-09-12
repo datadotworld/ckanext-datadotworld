@@ -96,8 +96,6 @@ def _prepare_resource_url(res):
     """
     link = res['url'] or ''
     name = res['name'] or ''
-    if link is None or name is None:
-        log.info('Undefined url or name: {0}'.format(res))
     link_name, link_ext = os.path.splitext(os.path.basename(link))
     file_name, file_ext = os.path.splitext(os.path.basename(name))
 
@@ -300,13 +298,12 @@ class API:
         return data
 
     def _delete_dataset(self, data, extras):
-        log.warn('[{0}] Try to delete'.format(extras.id))
         res = self._delete_request(data, extras.id)
         extras.message = res.content
         if res.status_code in (200, 404):
             query = model.Session.query(Extras).filter(Extras.id == extras.id)
             query.delete()
-            log.warn('[{0}] deleted from datadotworld_extras table'.format(
+            log.info('[{0}] deleted from datadotworld_extras table'.format(
                 extras.id))
         else:
             extras.state = States.failed
@@ -332,11 +329,6 @@ class API:
             model.Session.add(extras)
             extras.state = States.pending
 
-        # TODO: remove next line or set level to debug
-        log.warn('Performing {0} with {1}'.format(
-            getattr(action, '__name__', action),
-            pkg_dict['id']))
-
         try:
             model.Session.commit()
         except Exception as e:
@@ -355,7 +347,6 @@ class API:
         msg = '{0} - {1:20} - {2}'.format(
             resp.status_code, id, resp.content
         )
-        print(msg)
         log.info(msg)
 
     def check_credentials(self):
