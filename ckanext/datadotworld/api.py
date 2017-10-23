@@ -15,6 +15,7 @@
 import json
 import os.path
 import logging
+import time
 
 import requests
 from bleach import clean
@@ -28,6 +29,7 @@ from ckan.lib.munge import munge_name
 from ckanext.datadotworld.model import States
 from ckanext.datadotworld.model.extras import Extras
 from ckanext.datadotworld import __version__
+from pylons import config
 import re
 
 
@@ -120,6 +122,17 @@ def _prepare_resource_url(res):
 
     return prepared_data
 
+def _delay_request():
+    request_delay = config.get(
+        'ckan.datadotworld.request_delay', 0)
+    try:
+        request_delay = float(request_delay)
+    except Exception as e:
+        return False
+    if (request_delay > 0):
+        time.sleep(request_delay)
+
+    return True
 
 class API:
     root = 'https://data.world'
@@ -224,6 +237,8 @@ class API:
             log.warn(
                 '[{0}] Create package: {1}'.format(id, res.content))
 
+        _delay_request()
+
         return res
 
     def _update_request(self, data, id):
@@ -234,7 +249,9 @@ class API:
         else:
             log.warn(
                 '[{0}] Update package: {1}'.format(id, res.content))
-
+        
+        _delay_request()
+        
         return res
 
     def _delete_request(self, data, id):
@@ -245,6 +262,8 @@ class API:
         else:
             log.warn(
                 '[{0}] Delete package: {1}'.format(id, res.content))
+
+        _delay_request()
 
         return res
 
@@ -271,6 +290,9 @@ class API:
                 extras.id = new_id
 
             extras.state = States.uptodate
+        elif res.status_code == 429:
+            log.error('[{0}] Create package error (too many connections)'.format(
+                extras.id))
         else:
             extras.state = States.failed
             log.error('[{0}] Create package failed: {1}'.format(
@@ -291,6 +313,9 @@ class API:
             log.warn('[{0}] Package not exists. Creating...'.format(
                 extras.id))
             res = self._create(data, extras)
+        elif res.status_code == 429:
+            log.error('[{0}] Update package error (too many connections)'.format(
+                extras.id))
         else:
             extras.state = States.failed
             log.error('[{0}] Update package error:{1}'.format(
@@ -304,6 +329,9 @@ class API:
             query = model.Session.query(Extras).filter(Extras.id == extras.id)
             query.delete()
             log.info('[{0}] deleted from datadotworld_extras table'.format(
+                extras.id))
+        elif res.status_code == 429:
+            log.error('[{0}] Delete package error (too many connections)'.format(
                 extras.id))
         else:
             extras.state = States.failed
