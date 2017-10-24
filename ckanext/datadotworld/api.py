@@ -124,7 +124,7 @@ def _prepare_resource_url(res):
 
 def _delay_request():
     request_delay = config.get(
-        'ckan.datadotworld.request_delay', 0)
+        'ckan.datadotworld.request_delay', 1)
     try:
         request_delay = float(request_delay)
     except Exception as e:
