@@ -130,18 +130,6 @@ def dataset_footnote(pkg_dict):
     date_str = 'Last updated at <{0}> : {1}'.format(config.get('ckan.site_url') + '/', render_datetime(dataset_date, '%Y-%m-%d'))
     return '\n\n{0}  \r\n{1}'.format(source_str, date_str)
 
-def _delay_request():
-    request_delay = config.get(
-        'ckan.datadotworld.request_delay', 1)
-    try:
-        request_delay = float(request_delay)
-    except Exception as e:
-        return False
-    if (request_delay > 0):
-        time.sleep(request_delay)
-
-    return True
-    
 
 class API:
     root = 'https://data.world'
