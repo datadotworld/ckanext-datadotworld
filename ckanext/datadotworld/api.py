@@ -122,8 +122,7 @@ def _prepare_resource_url(res):
 
     return prepared_data
 
-<<<<<<< Updated upstream
-=======
+
 def dataset_footnote(pkg_dict):
     dataset_url = config.get('ckan.site_url') + url_for(controller='package', action='read', id=pkg_dict.get('id'))
     source_str = 'Source: <{0}>'.format(dataset_url)
@@ -142,7 +141,7 @@ def _delay_request():
         time.sleep(request_delay)
 
     return True
->>>>>>> Stashed changes
+    
 
 class API:
     root = 'https://data.world'
