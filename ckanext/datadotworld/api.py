@@ -109,7 +109,10 @@ def _prepare_resource_url(res):
 
     prepared_data = dict(
         name=(file_name or link_name) + ext,
-        source=dict(url=link)
+        source=dict(
+            url=link,
+            expandArchive=True
+        )
     )
     description = res.get('description', '')
 
