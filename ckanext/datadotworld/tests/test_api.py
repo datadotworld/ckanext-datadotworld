@@ -115,27 +115,28 @@ class TestAPI(TestCase):
         self.assertTrue(api.notify(pkg['id']))
 
         pkg = Dataset(owner_org=self.org['id'])
+        attempt = 0
         self.assertTrue(api.notify(pkg['id']))
-        sync.assert_called_with(pkg)
+        sync.assert_called_with(pkg, attempt)
 
     def test_prepare_resource_url(self):
         res = {'url': 'a/b/c.csv', 'name': 'File'}
         expect = {
             'name': 'File.csv',
-            'source': {'url': res['url']}}
+            'source': {'expandArchive': True, 'url': res['url']}}
         self.assertEqual(expect, api._prepare_resource_url(res))
 
         res = {'url': 'a/b/c.csv', 'name': '', 'description': 'xxx'}
         expect = {
             'name': 'c.csv',
             'description': 'xxx',
-            'source': {'url': res['url']}}
+            'source': {'expandArchive': True, 'url': res['url']}}
         self.assertEqual(expect, api._prepare_resource_url(res))
 
         res = {'url': 'a/b/c.csv', 'name': None}
         expect = {
             'name': 'c.csv',
-            'source': {'url': res['url']}}
+            'source': {'expandArchive': True, 'url': res['url']}}
         self.assertEqual(expect, api._prepare_resource_url(res))
 
     def test_assert_description_truncation(self):

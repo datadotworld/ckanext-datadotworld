@@ -49,7 +49,7 @@ def datadotworld_syncronize(*args, **kwargs):
     syncronize(*args, **kwargs)
 
 
-def syncronize(id, ckan_ini_filepath):
+def syncronize(id, ckan_ini_filepath, attempt=0):
     load_config(ckan_ini_filepath)
     register_translator()
-    notify(id)
+    notify(id, attempt)
