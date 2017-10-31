@@ -25,13 +25,13 @@ from webhelpers.text import truncate
 import ckan.model as model
 from ckan.logic import get_action
 from ckan.lib.munge import munge_name
+from ckan.lib.celery_app import celery
 
 from ckanext.datadotworld.model import States
 from ckanext.datadotworld.model.extras import Extras
 from ckanext.datadotworld import __version__
 from pylons import config
 import re
-from ckan.lib.celery_app import celery
 
 
 log = logging.getLogger(__name__)
