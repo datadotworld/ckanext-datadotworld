@@ -28,8 +28,11 @@ from ckan.lib.munge import munge_name
 from ckanext.datadotworld.model import States
 from ckanext.datadotworld.model.extras import Extras
 from ckanext.datadotworld import __version__
+from pylons import config
 import re
-
+from ckan.lib.helpers import url_for
+from ckan.lib.helpers import date_str_to_datetime
+from ckan.lib.helpers import render_datetime
 
 log = logging.getLogger(__name__)
 licenses = {
@@ -124,6 +127,16 @@ def _prepare_resource_url(res):
     return prepared_data
 
 
+def dataset_footnote(pkg_dict):
+    dataset_url = url_for(controller='package', action='read', id=pkg_dict.get('id'), qualified=True)
+    source_str = 'Source: {0}'.format(dataset_url)
+    dataset_date = date_str_to_datetime(pkg_dict.get('metadata_modified'))
+    date_str = 'Last updated at {0} : {1}'.format(
+        url_for(controller='home', action='index', qualified=True), 
+        render_datetime(dataset_date, '%Y-%m-%d'))
+    return '\n\n{0}  \r\n{1}'.format(source_str, date_str)
+
+
 class API:
     root = 'https://data.world'
     api_root = 'https://api.data.world/v0'
@@ -196,6 +209,8 @@ class API:
 
     def _format_data(self, pkg_dict):
         notes = pkg_dict.get('notes') or ''
+        footnote = dataset_footnote(pkg_dict)
+        notes += footnote
         tags = datadotworld_tags_name_normalize(pkg_dict.get('tags', []))
         data = dict(
             title=pkg_dict['name'],
