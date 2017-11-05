@@ -140,7 +140,7 @@ def _delay_request():
 
     return True
 
-<<<<<<< HEAD
+
 def _repeat_request(pkg_id, attempt):
     attempt += 1
     max_attempt = config.get(
@@ -157,7 +157,7 @@ def _repeat_request(pkg_id, attempt):
     celery.send_task(
         'datadotworld.syncronize',
         args=[pkg_id, ckan_ini_filepath, attempt])
-=======
+
 def dataset_footnote(pkg_dict):
     dataset_url = url_for(controller='package', action='read', id=pkg_dict.get('id'), qualified=True)
     source_str = 'Source: {0}'.format(dataset_url)
@@ -167,7 +167,7 @@ def dataset_footnote(pkg_dict):
         render_datetime(dataset_date, '%Y-%m-%d'))
     return '\n\n{0}  \r\n{1}'.format(source_str, date_str)
 
->>>>>>> uat
+
 
 class API:
     root = 'https://data.world'
