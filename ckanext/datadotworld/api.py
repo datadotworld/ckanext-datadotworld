@@ -25,7 +25,6 @@ from webhelpers.text import truncate
 import ckan.model as model
 from ckan.logic import get_action
 from ckan.lib.munge import munge_name
-from ckan.lib.celery_app import celery
 
 from ckanext.datadotworld.model import States
 from ckanext.datadotworld.model.extras import Extras
@@ -35,6 +34,7 @@ import re
 from ckan.lib.helpers import url_for
 from ckan.lib.helpers import date_str_to_datetime
 from ckan.lib.helpers import render_datetime
+import ckanext.datadotworld.helpers as dh
 
 log = logging.getLogger(__name__)
 licenses = {
@@ -154,8 +154,9 @@ def _repeat_request(pkg_id, attempt):
         log.info('Max request attempt ({0}) achieved for {1}.'.format(max_attempt, pkg_id))
         return
     ckan_ini_filepath = os.path.abspath(config['__file__'])
-    celery.send_task(
+    dh.compat_enqueue(
         'datadotworld.syncronize',
+        dh.syncronize,
         args=[pkg_id, ckan_ini_filepath, attempt])
 
 def dataset_footnote(pkg_dict):
@@ -359,7 +360,6 @@ class API:
             extras.state = States.failed
             log.error('[{0}] Update package error:{1}'.format(
                 extras.id, res.content))
-        
         return data
 
     def _delete_dataset(self, data, extras, attempt=0):

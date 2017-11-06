@@ -22,6 +22,7 @@ import logging
 from migrate.versioning.shell import main
 from migrate.exceptions import DatabaseAlreadyControlledError
 import os.path as path
+import ckanext.datadotworld.helpers as dh
 
 log = logging.getLogger('ckanext.datadotworld')
 repository = path.realpath(path.join(
@@ -75,13 +76,14 @@ class DataDotWorldCommand(CkanCommand):
         # XXX: DO NOT IMPORT celery at the top of file - it will
         # use incorrect config then and you'll receive error like
         # "no section app:main in config file"
-        from ckan.lib.celery_app import celery
+        # from ckan.lib.celery_app import celery
         ckan_ini_filepath = path.abspath(config['__file__'])
         failed = model.Session.query(Extras).filter_by(state='failed')
 
         for record in failed:
-            celery.send_task(
+            dh.compat_enqueue(
                 'datadotworld.syncronize',
+                dh.syncronize,
                 args=[record.package_id, ckan_ini_filepath])
 
     def _sync_resources(self):
