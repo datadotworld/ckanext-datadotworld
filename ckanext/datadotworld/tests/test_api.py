@@ -235,7 +235,7 @@ class TestAPI(TestCase):
             'tags': ['xx'],
             'title': pkg['name'],
             'visibility': 'OPEN',
-            'summary': pkg['notes']}
+            'summary': pkg['notes'] + api.dataset_footnote(pkg)}
         self.assertEqual(expect, result)
 
     def test_is_dict_changed(self):

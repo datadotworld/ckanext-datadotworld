@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from ckan.lib.celery_app import celery
-from ckanext.datadotworld.helpers import syncronize
+from ckanext.datadotworld.api import syncronize
 
 
 @celery.task(name="datadotworld.syncronize")

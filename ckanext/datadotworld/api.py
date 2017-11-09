@@ -34,7 +34,6 @@ import re
 from ckan.lib.helpers import url_for
 from ckan.lib.helpers import date_str_to_datetime
 from ckan.lib.helpers import render_datetime
-import ckanext.datadotworld.helpers as dh
 
 log = logging.getLogger(__name__)
 licenses = {
@@ -48,6 +47,51 @@ licenses = {
     'cc-nc': 'CC BY-NC',
     # 'CC BY-NC-SA',
 }
+
+def compat_enqueue(name, fn, args=None):
+    u'''
+    Enqueue a background job using Celery or RQ.
+    '''
+    try:
+        # Try to use RQ
+        from ckan.lib.jobs import enqueue
+        enqueue(fn, args=args)
+    except ImportError:
+        # Fallback to Celery
+        from ckan.lib.celery_app import celery
+        celery.send_task(name, args=args)
+
+def load_config(ckan_ini_filepath):
+    import os
+    import paste.deploy
+    config_abs_path = os.path.abspath(ckan_ini_filepath)
+    conf = paste.deploy.appconfig('config:' + config_abs_path)
+    import ckan
+    ckan.config.environment.load_environment(conf.global_conf,
+                                             conf.local_conf)
+
+
+def register_translator():
+    # https://github.com/ckan/ckanext-archiver/blob/master/ckanext/archiver/bin/common.py
+    # If not set (in cli access), patch the a translator with a mock, so the
+    # _() functions in logic layer don't cause failure.
+    from paste.registry import Registry
+    from pylons import translator
+    from ckan.lib.cli import MockTranslator
+    if 'registery' not in globals():
+        global registry
+        registry = Registry()
+        registry.prepare()
+
+    if 'translator_obj' not in globals():
+        global translator_obj
+        translator_obj = MockTranslator()
+        registry.register(translator, translator_obj)
+        
+def syncronize(id, ckan_ini_filepath, attempt=0):
+    load_config(ckan_ini_filepath)
+    register_translator()
+    notify(id, attempt)
 
 
 def get_context():
@@ -154,9 +198,9 @@ def _repeat_request(pkg_id, attempt):
         log.info('Max request attempt ({0}) achieved for {1}.'.format(max_attempt, pkg_id))
         return
     ckan_ini_filepath = os.path.abspath(config['__file__'])
-    dh.compat_enqueue(
+    compat_enqueue(
         'datadotworld.syncronize',
-        dh.syncronize,
+        syncronize,
         args=[pkg_id, ckan_ini_filepath, attempt])
 
 def dataset_footnote(pkg_dict):

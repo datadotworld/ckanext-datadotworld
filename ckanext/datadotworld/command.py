@@ -17,12 +17,13 @@ from pylons import config
 import ckan.model as model
 from ckanext.datadotworld.model.extras import Extras
 from ckanext.datadotworld.api import API
+from ckanext.datadotworld.api import compat_enqueue
+from ckanext.datadotworld.api import syncronize
 import paste.script
 import logging
 from migrate.versioning.shell import main
 from migrate.exceptions import DatabaseAlreadyControlledError
 import os.path as path
-import ckanext.datadotworld.helpers as dh
 
 log = logging.getLogger('ckanext.datadotworld')
 repository = path.realpath(path.join(
@@ -81,9 +82,9 @@ class DataDotWorldCommand(CkanCommand):
         failed = model.Session.query(Extras).filter_by(state='failed')
 
         for record in failed:
-            dh.compat_enqueue(
+            compat_enqueue(
                 'datadotworld.syncronize',
-                dh.syncronize,
+                syncronize,
                 args=[record.package_id, ckan_ini_filepath])
 
     def _sync_resources(self):

@@ -75,7 +75,7 @@ class DatadotworldPlugin(plugins.SingletonPlugin):
 
     def after_create(self, context, data_dict):
         ckan_ini_filepath = os.path.abspath(config['__file__'])
-        dh.compat_enqueue(
+        api.compat_enqueue(
             'datadotworld.syncronize',
             tasks.syncronize,
             args=[data_dict['id'], ckan_ini_filepath])
@@ -83,7 +83,7 @@ class DatadotworldPlugin(plugins.SingletonPlugin):
 
     def after_update(self, context, data_dict):
         ckan_ini_filepath = os.path.abspath(config['__file__'])
-        dh.compat_enqueue(
+        api.compat_enqueue(
             'datadotworld.syncronize',
             tasks.syncronize,
             args=[data_dict['id'], ckan_ini_filepath])
@@ -91,7 +91,7 @@ class DatadotworldPlugin(plugins.SingletonPlugin):
 
     def after_delete(self, context, data_dict):
         ckan_ini_filepath = os.path.abspath(config['__file__'])
-        dh.compat_enqueue(
+        api.compat_enqueue(
             'datadotworld.syncronize',
             tasks.syncronize,
             args=[data_dict['id'], ckan_ini_filepath])
