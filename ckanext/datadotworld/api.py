@@ -31,7 +31,9 @@ from ckanext.datadotworld.model.extras import Extras
 from ckanext.datadotworld import __version__
 from pylons import config
 import re
-
+from ckan.lib.helpers import url_for
+from ckan.lib.helpers import date_str_to_datetime
+from ckan.lib.helpers import render_datetime
 
 log = logging.getLogger(__name__)
 licenses = {
@@ -45,6 +47,51 @@ licenses = {
     'cc-nc': 'CC BY-NC',
     # 'CC BY-NC-SA',
 }
+
+def compat_enqueue(name, fn, args=None):
+    u'''
+    Enqueue a background job using Celery or RQ.
+    '''
+    try:
+        # Try to use RQ
+        from ckan.lib.jobs import enqueue
+        enqueue(fn, args=args)
+    except ImportError:
+        # Fallback to Celery
+        from ckan.lib.celery_app import celery
+        celery.send_task(name, args=args)
+
+def load_config(ckan_ini_filepath):
+    import os
+    import paste.deploy
+    config_abs_path = os.path.abspath(ckan_ini_filepath)
+    conf = paste.deploy.appconfig('config:' + config_abs_path)
+    import ckan
+    ckan.config.environment.load_environment(conf.global_conf,
+                                             conf.local_conf)
+
+
+def register_translator():
+    # https://github.com/ckan/ckanext-archiver/blob/master/ckanext/archiver/bin/common.py
+    # If not set (in cli access), patch the a translator with a mock, so the
+    # _() functions in logic layer don't cause failure.
+    from paste.registry import Registry
+    from pylons import translator
+    from ckan.lib.cli import MockTranslator
+    if 'registery' not in globals():
+        global registry
+        registry = Registry()
+        registry.prepare()
+
+    if 'translator_obj' not in globals():
+        global translator_obj
+        translator_obj = MockTranslator()
+        registry.register(translator, translator_obj)
+        
+def syncronize(id, ckan_ini_filepath, attempt=0):
+    load_config(ckan_ini_filepath)
+    register_translator()
+    notify(id, attempt)
 
 
 def get_context():
@@ -79,7 +126,7 @@ def _get_creds_if_must_sync(pkg_dict):
     return credentials
 
 
-def notify(pkg_id):
+def notify(pkg_id, attempt=0):
     pkg_dict = get_action('package_show')(get_context(), {'id': pkg_id})
     if pkg_dict.get('type', 'dataset') != 'dataset':
         return False
@@ -89,7 +136,7 @@ def notify(pkg_id):
     if pkg_dict.get('state') == 'draft':
         return False
     api = API(credentials.owner, credentials.key)
-    api.sync(pkg_dict)
+    api.sync(pkg_dict, attempt)
     return True
 
 
@@ -111,7 +158,10 @@ def _prepare_resource_url(res):
 
     prepared_data = dict(
         name=(file_name or link_name) + ext,
-        source=dict(url=link)
+        source=dict(
+            url=link,
+            expandArchive=True
+        )
     )
     description = res.get('description', '')
 
@@ -133,6 +183,36 @@ def _delay_request():
         time.sleep(request_delay)
 
     return True
+
+
+def _repeat_request(pkg_id, attempt):
+    attempt += 1
+    max_attempt = config.get(
+        'ckan.datadotworld.max_request_attempt', 10)
+    try:
+        max_attempt = int(max_attempt) - 1
+    except Exception as e:
+        log.info('Wrong variable format for max_request_attempt.')
+        return
+    if attempt > max_attempt:
+        log.info('Max request attempt ({0}) achieved for {1}.'.format(max_attempt, pkg_id))
+        return
+    ckan_ini_filepath = os.path.abspath(config['__file__'])
+    compat_enqueue(
+        'datadotworld.syncronize',
+        syncronize,
+        args=[pkg_id, ckan_ini_filepath, attempt])
+
+def dataset_footnote(pkg_dict):
+    dataset_url = url_for(controller='package', action='read', id=pkg_dict.get('id'), qualified=True)
+    source_str = 'Source: {0}'.format(dataset_url)
+    dataset_date = date_str_to_datetime(pkg_dict.get('metadata_modified'))
+    date_str = 'Last updated at {0} : {1}'.format(
+        url_for(controller='home', action='index', qualified=True), 
+        render_datetime(dataset_date, '%Y-%m-%d'))
+    return '\n\n{0}  \r\n{1}'.format(source_str, date_str)
+
+
 
 class API:
     root = 'https://data.world'
@@ -206,6 +286,8 @@ class API:
 
     def _format_data(self, pkg_dict):
         notes = pkg_dict.get('notes') or ''
+        footnote = dataset_footnote(pkg_dict)
+        notes += footnote
         tags = datadotworld_tags_name_normalize(pkg_dict.get('tags', []))
         data = dict(
             title=pkg_dict['name'],
@@ -280,7 +362,7 @@ class API:
                 return False
         return True
 
-    def _create(self, data, extras):
+    def _create(self, data, extras, attempt=0):
         res = self._create_request(data, extras.id)
         extras.message = res.content
         if res.status_code == 200:
@@ -293,6 +375,7 @@ class API:
         elif res.status_code == 429:
             log.error('[{0}] Create package error (too many connections)'.format(
                 extras.id))
+            _repeat_request(extras.id, attempt)
         else:
             extras.state = States.failed
             log.error('[{0}] Create package failed: {1}'.format(
@@ -300,7 +383,7 @@ class API:
 
         return data
 
-    def _update(self, data, extras):
+    def _update(self, data, extras, attempt=0):
         if not self._is_update_required(data, extras.id):
             return data
 
@@ -316,13 +399,14 @@ class API:
         elif res.status_code == 429:
             log.error('[{0}] Update package error (too many connections)'.format(
                 extras.id))
+            _repeat_request(extras.id, attempt)
         else:
             extras.state = States.failed
             log.error('[{0}] Update package error:{1}'.format(
                 extras.id, res.content))
         return data
 
-    def _delete_dataset(self, data, extras):
+    def _delete_dataset(self, data, extras, attempt=0):
         res = self._delete_request(data, extras.id)
         extras.message = res.content
         if res.status_code in (200, 404):
@@ -333,13 +417,14 @@ class API:
         elif res.status_code == 429:
             log.error('[{0}] Delete package error (too many connections)'.format(
                 extras.id))
+            _repeat_request(extras.id, attempt)
         else:
             extras.state = States.failed
             log.error('[{0}] Delete package error:{1}'.format(
                 extras.id, res.content))
         return data
 
-    def sync(self, pkg_dict):
+    def sync(self, pkg_dict, attempt=0):
         entity = model.Package.get(pkg_dict['id'])
         pkg_dict = get_action('package_show')(get_context(), {'id': entity.id})
         data_dict = self._format_data(pkg_dict)
