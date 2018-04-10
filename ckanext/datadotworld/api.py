@@ -214,6 +214,16 @@ def dataset_footnote(pkg_dict):
 
 
 
+def dataset_footnote(pkg_dict):
+    dataset_url = url_for(controller='package', action='read', id=pkg_dict.get('id'), qualified=True)
+    source_str = 'Source: {0}'.format(dataset_url)
+    dataset_date = date_str_to_datetime(pkg_dict.get('metadata_modified'))
+    date_str = 'Last updated at {0} : {1}'.format(
+        url_for(controller='home', action='index', qualified=True), 
+        render_datetime(dataset_date, '%Y-%m-%d'))
+    return '\n\n{0}  \r\n{1}'.format(source_str, date_str)
+
+
 class API:
     root = 'https://data.world'
     api_root = 'https://api.data.world/v0'
