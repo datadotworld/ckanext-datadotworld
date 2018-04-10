@@ -17,6 +17,8 @@ from pylons import config
 import ckan.model as model
 from ckanext.datadotworld.model.extras import Extras
 from ckanext.datadotworld.api import API
+from ckanext.datadotworld.api import compat_enqueue
+from ckanext.datadotworld.api import syncronize
 import paste.script
 import logging
 from migrate.versioning.shell import main
@@ -75,13 +77,14 @@ class DataDotWorldCommand(CkanCommand):
         # XXX: DO NOT IMPORT celery at the top of file - it will
         # use incorrect config then and you'll receive error like
         # "no section app:main in config file"
-        from ckan.lib.celery_app import celery
+        # from ckan.lib.celery_app import celery
         ckan_ini_filepath = path.abspath(config['__file__'])
         failed = model.Session.query(Extras).filter_by(state='failed')
 
         for record in failed:
-            celery.send_task(
+            compat_enqueue(
                 'datadotworld.syncronize',
+                syncronize,
                 args=[record.package_id, ckan_ini_filepath])
 
     def _sync_resources(self):

@@ -20,26 +20,11 @@ import logging
 import ckanext.datadotworld.tasks as tasks
 import ckanext.datadotworld.api as api
 import ckanext.datadotworld.helpers as dh
-from ckan.lib.celery_app import celery
 import os
 from pylons import config
 
 
 log = logging.getLogger(__name__)
-
-
-def compat_enqueue(name, fn, args=None):
-    u'''
-    Enqueue a background job using Celery or RQ.
-    '''
-    try:
-        # Try to use RQ
-        from ckan.lib.jobs import enqueue
-        enqueue(fn, args=args)
-    except ImportError:
-        # Fallback to Celery
-        from ckan.lib.celery_app import celery
-        celery.send_task(name, args=args)
 
 
 class DatadotworldPlugin(plugins.SingletonPlugin):
@@ -90,7 +75,7 @@ class DatadotworldPlugin(plugins.SingletonPlugin):
 
     def after_create(self, context, data_dict):
         ckan_ini_filepath = os.path.abspath(config['__file__'])
-        compat_enqueue(
+        api.compat_enqueue(
             'datadotworld.syncronize',
             tasks.syncronize,
             args=[data_dict['id'], ckan_ini_filepath])
@@ -98,7 +83,7 @@ class DatadotworldPlugin(plugins.SingletonPlugin):
 
     def after_update(self, context, data_dict):
         ckan_ini_filepath = os.path.abspath(config['__file__'])
-        compat_enqueue(
+        api.compat_enqueue(
             'datadotworld.syncronize',
             tasks.syncronize,
             args=[data_dict['id'], ckan_ini_filepath])
@@ -106,7 +91,7 @@ class DatadotworldPlugin(plugins.SingletonPlugin):
 
     def after_delete(self, context, data_dict):
         ckan_ini_filepath = os.path.abspath(config['__file__'])
-        compat_enqueue(
+        api.compat_enqueue(
             'datadotworld.syncronize',
             tasks.syncronize,
             args=[data_dict['id'], ckan_ini_filepath])
