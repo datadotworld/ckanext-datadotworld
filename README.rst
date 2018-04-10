@@ -67,6 +67,21 @@ A similar solution enables syncronization with remote (i.e. not uploaded) resour
 	* 8 * * * paster --plugin=ckanext-datadotworld datadotworld sync_resources -c /config.ini
 
 
+**Delay option**
+ 
+There is a 1 second delay configured by default. This delay period can be controlled by modifying the "ckan.datadotworld.request_delay" configuration variable within the CKAN ini file.
+ 
+For example:
+ 
+      ckan.datadotworld.request_delay = 1
+ 
+To ensure that the delay will work correctly, you also need to configure Celery to work in single thread mode. To do this, add the following flag to the Celery start command:
+ 
+      --concurrency=1
+ 
+Details at http://celery.readthedocs.io/en/latest/userguide/workers.html#concurrency.
+
+
 -----------------
 Template snippets
 -----------------

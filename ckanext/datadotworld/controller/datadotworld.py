@@ -23,6 +23,8 @@ from ckanext.datadotworld.model.extras import Extras
 from ckan.common import _, request, c
 import ckan.lib.helpers as h
 from ckanext.datadotworld.api import API
+from ckanext.datadotworld.api import compat_enqueue
+from ckanext.datadotworld.api import syncronize
 from pylons import config
 import os
 from ckan.lib.celery_app import celery
@@ -38,8 +40,9 @@ def syncronize_org(id):
         owner_org=id
     )
     for pkg in packages:
-        celery.send_task(
+        compat_enqueue(
             'datadotworld.syncronize',
+            syncronize,
             args=[pkg.id, ckan_ini_filepath])
 
 

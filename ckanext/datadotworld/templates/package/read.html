@@ -16,7 +16,7 @@
 
 {% ckan_extends %}
 
-{% block package_resources %}
+{% block primary_content_inner %}
+  {{ super() }}
   {% snippet 'snippets/datadotworld/banner.html', org_id=pkg.owner_org, datadotworld_extras=c.pkg.datadotworld_extras %}
-{{ super() }}
 {% endblock %}
