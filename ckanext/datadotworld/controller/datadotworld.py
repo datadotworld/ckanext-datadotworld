@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import json
+import logging
 import ckan.lib.base as base
 import ckan.model as model
 import ckan.logic as logic
@@ -22,11 +23,15 @@ from ckanext.datadotworld.model.extras import Extras
 from ckan.common import _, request, c
 import ckan.lib.helpers as h
 from ckanext.datadotworld.api import API
+from ckanext.datadotworld.api import compat_enqueue
+from ckanext.datadotworld.api import syncronize
 from pylons import config
 import os
 from ckan.lib.celery_app import celery
 from sqlalchemy import func
 import ckanext.datadotworld.helpers as dh
+
+logger = logging.getLogger(__name__)
 
 
 def syncronize_org(id):
@@ -35,34 +40,42 @@ def syncronize_org(id):
         owner_org=id
     )
     for pkg in packages:
-        celery.send_task(
+        compat_enqueue(
             'datadotworld.syncronize',
+            syncronize,
             args=[pkg.id, ckan_ini_filepath])
 
 
 class DataDotWorldController(base.BaseController):
-    def list_sync(self, state):
+    def list_sync(self, state, org_id=None):
         orgs = dh.admin_in_orgs(c.user)
-        if not orgs:
+        org = model.Group.get(org_id)
+        if not orgs or (org and org not in orgs):
             base.abort(401, _('User %r not authorized to see this page') % (
                 c.user))
         extra = {
             'displayed_state': state
         }
-        ids = [org.id for org in orgs]
+        ids = [o.id for o in orgs]
         query = model.Session.query(
             model.Package.name,
             model.Package.title,
             Extras.message
         ).join(
             model.Group, model.Package.owner_org == model.Group.id
-        ).filter(
-            model.Group.id.in_(ids)
         ).join(
             Extras
         ).filter(
             Extras.state == state
         )
+        if org:
+            query = query.filter(
+                model.Group.id == org.id
+            )
+        else:
+            query = query.filter(
+                model.Group.id.in_(ids)
+            )
         extra['datasets'] = query.all()
         for pkg in extra['datasets']:
             try:
@@ -72,7 +85,6 @@ class DataDotWorldController(base.BaseController):
                     'RAW message': pkg.message
                 }
         return base.render('datadotworld/list_sync.html', extra_vars=extra)
-
 
     def edit(self, id):
         def validate(data):
@@ -139,12 +151,14 @@ class DataDotWorldController(base.BaseController):
                 extra['error_summary'] = e.error_summary
             else:
 
-                model.Session.query(Extras).join(
+                query = model.Session.query(Extras).join(
                     model.Package
                 ).join(
                     model.Group, model.Package.owner_org == model.Group.id
-                ).filter(model.Group.id == c.group.id).update(
-                    {'state': 'pending'})
+                ).filter(model.Group.id == c.group.id)
+                for item in query:
+                    item.state = 'pending'
+
                 model.Session.commit()
                 h.flash_success('Saved')
                 if tk.asbool(c.credentials.integration):
