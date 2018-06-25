@@ -75,7 +75,7 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/technical.html#install-requires-vs-requirements-files
     install_requires=[
-        'sqlalchemy-migrate==0.9.1',
+        'sqlalchemy-migrate==0.10.0',
         'celery==3.1.23'
     ],
 
